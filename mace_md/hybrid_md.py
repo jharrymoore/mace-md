@@ -285,7 +285,7 @@ class MACESystemBase(ABC):
                 # rpmd requires that the integrator be used to set positions
             if self.minimiser == "openmm":
                 logging.info("Minimising energy...")
-                simulation.minimizeEnergy(maxIterations=10)
+                simulation.minimizeEnergy()
                 if isinstance(integrator, RPMDIntegrator):
                     minimised_state = integrator.getState(
                         0, getPositions=True, getVelocities=True, getForces=True
@@ -1021,6 +1021,7 @@ class PureSystem(MACESystemBase):
 
         elif ml_mol.endswith(".sdf"):
             molecule = Molecule.from_file(ml_mol)
+
             # input_file = molecule
             topology = molecule.to_topology().to_openmm()
             # Hold positions in nanometers

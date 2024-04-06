@@ -35,7 +35,6 @@ def test_pure_mace_md(file, nl, remove_cmm, minimiser, integrator):
     # inspect the dtype of the model
     model = torch.load(model_path)
     dtype = model.r_max.dtype
-    # print("pytorch dtype from model is", dtype)
 
     system = PureSystem(
         ml_mol=os.path.join(TEST_DIR, file),

@@ -1,0 +1,18 @@
+name: mace-openmm
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pytorch=2.0.0
+  - mdtraj
+  - openmm
+  - openmm-torch
+  - openmmtools
+  - nnpops
+  - pyyaml
+  - numba
+  - rdkit
+  - openff-toolkit
+  - openmmforcefields
+  - scikit-learn
+    
