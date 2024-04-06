@@ -53,6 +53,7 @@ def parse_arguments():
         default="cube",
         choices=["cube", "dodecahedron", "octahedron"],
     )
+    parser.add_argument("--constrain_res", type=str, default=None)
     parser.add_argument("--nonbondedCutoff", "-c", default=1.0, type=float)
     parser.add_argument("--ionic_strength", "-i", default=0.15, type=float)
     parser.add_argument("--potential", default="mace", type=str)

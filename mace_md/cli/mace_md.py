@@ -9,7 +9,7 @@ import time
 import ast
 
 # logging.getLogger("openmmtools.multistate").setLevel(logging.ERROR)
-numba_logger = logging.getLogger('numba')
+numba_logger = logging.getLogger("numba")
 numba_logger.setLevel(logging.WARNING)
 
 
@@ -68,13 +68,11 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
     print(x)
 
     if args.dtype == "float32":
-        logging.warning(
-            "Running with single precision \
-                - this can lead to numerical stability issues"
-        )
+        logging.info("Running with single precision ")
         torch.set_default_dtype(torch.float32)
         dtype = torch.float32
     elif args.dtype == "float64":
+        logging.info("Running with double precision")
         torch.set_default_dtype(torch.float64)
         dtype = torch.float64
     else:
@@ -82,9 +80,8 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
     tools.setup_logger(level=args.log_level, directory=args.output_dir, tag="mace_md")
 
     # we don't need to specify the file twice if dealing with just the ligand
-    if args.file.endswith(".sdf") and args.ml_mol is None:
+    if args.ml_mol is None:
         args.ml_mol = args.file
-    # ADD THE WATER MODEL TO forcefield list
     if args.water_model == "tip3p":
         args.forcefields.append("amber/tip3p_standard.xml")
     elif args.water_model == "tip4pew":
@@ -97,7 +94,9 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             "Cannot run a pure MACE system with only the MM forcefield\
                  - please use a hybrid system"
         )
-
+    if args.constrain_res is not None:
+        args.constrain_res = ast.literal_eval(args.constrain_atoms)
+        assert isinstance(args.constrain_res, list), "constrain_atoms must be a list"
     # Only need interpolation when running repex and not decoupling
     interpolate = (
         True if (args.run_type in ["repex", "neq"] and not args.decouple) else False
@@ -120,6 +119,7 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             pressure=args.pressure,
             dtype=dtype,
             decouple=args.decouple,
+            constrain_res=args.constrain_res,
             nl=args.nl,
             max_n_pairs=args.max_n_pairs,
             timestep=args.timestep,
@@ -167,9 +167,11 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
         raise ValueError(f"System type {args.system_type} not recognised!")
     if args.run_type == "md":
         # if we are running regular MD, but with decouple, we can effectively run a single replica - set the system's alchemical parameter
-             # set the lambda value to the specified value
+        # set the lambda value to the specified value
         if args.lambda_schedule is not None:
-            assert len(args.lambda_schedule) == 1, "If running regular MD with decouple, only one lambda value should be specified"
+            assert (
+                len(args.lambda_schedule) == 1
+            ), "If running regular MD with decouple, only one lambda value should be specified"
             args.lambda_schedule = args.lambda_schedule[0]
 
         system.run_mixed_md(

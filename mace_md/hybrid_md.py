@@ -24,6 +24,7 @@ from openmm import (
 )
 import matplotlib.pyplot as plt
 from openmmtools.integrators import AlchemicalNonequilibriumLangevinIntegrator
+from openmmtools.forces import HarmonicRestraintForce
 from openmmtools import states, mcmc
 from openmmtools.multistate.replicaexchange import ReplicaExchangeSampler
 from mdtraj.geometry.dihedral import indices_phi, indices_psi
@@ -906,6 +907,7 @@ class PureSystem(MACESystemBase):
         nl: str,
         max_n_pairs: int,
         minimiser: str,
+        constrain_res: Optional[List[str]] = None,
         decouple: bool = False,
         file: Optional[str] = None,
         boxsize: Optional[int] = None,
@@ -945,6 +947,7 @@ class PureSystem(MACESystemBase):
         self.decouple = decouple
         self.resname = resname
         self.nnpify_type = nnpify_type
+        self.constrain_res = constrain_res
 
         self.create_system(ml_mol=ml_mol, model_path=model_path)
 
@@ -1048,7 +1051,9 @@ class PureSystem(MACESystemBase):
                     self.modeller.topology, self.modeller.getPositions(), file=f
                 )
 
-            logger.info(f"Initialized topology with {self.modeller.topology.getNumAtoms()} atoms")
+            logger.info(
+                f"Initialized topology with {self.modeller.topology.getNumAtoms()} atoms"
+            )
 
         else:
             raise NotImplementedError
@@ -1058,11 +1063,9 @@ class PureSystem(MACESystemBase):
             solute_atoms = get_atoms_from_resname(
                 self.modeller.topology, self.resname, self.nnpify_type
             )
-            # TODO: get resname and ml_selection from command line
             logger.info(f"Creating alchemical system with solute atoms {solute_atoms}")
             self.system = ml_potential.createAlchemicalSystem(
-                topology,
-                solute_atoms=solute_atoms   
+                topology, solute_atoms=solute_atoms
             )
         else:
             self.system = ml_potential.createSystem(
@@ -1076,6 +1079,20 @@ class PureSystem(MACESystemBase):
             logger.info(
                 f"Pressure will be maintained at {self.pressure} bar with MC barostat"
             )
-            barostat = MonteCarloBarostat(self.pressure * bar, self.temperature * kelvin)
+            barostat = MonteCarloBarostat(
+                self.pressure * bar, self.temperature * kelvin
+            )
             # barostat.setFrequency(25)  25 timestep is the default
             self.system.addForce(barostat)
+
+        if self.constrain_res is not None:
+            assert len(self.constrain_res) == 2
+            lig1_atoms = get_atoms_from_resname(
+                self.modeller.topology, self.constrain_res[0], "resname"
+            )
+            lig2_atoms = get_atoms_from_resname(
+                self.modeller.topology, self.constrain_res[1], "resname"
+            )
+            logger.info(f"Restraing atoms {lig1_atoms} and {lig2_atoms}")
+            restraint = HarmonicRestraintForce(100, lig1_atoms, lig2_atoms)
+            self.system.addForce(restraint)

@@ -194,6 +194,9 @@ class RepexConstructor:
             _sampler = NNPRepexSampler.from_storage(self._storage_kwargs["storage"])
             _sampler.energy_context_cache = context_cache
             _sampler.sampler_context_cache = context_cache
+            _sampler.number_of_iterations = self._replica_exchange_sampler_kwargs[
+                "number_of_iterations"
+            ]
         else:
             logging.info("Starting Repex sampling from scratch")
             _sampler = NNPRepexSampler(
