@@ -4,6 +4,7 @@ import sys
 import os
 from argparse import ArgumentParser
 
+
 def setup_logger(
     level: Union[int, str] = logging.INFO,
     tag: Optional[str] = None,
@@ -29,6 +30,7 @@ def setup_logger(
 
         logger.addHandler(fh)
 
+
 def parse_arguments():
 
     parser = ArgumentParser()
@@ -47,6 +49,7 @@ def parse_arguments():
     parser.add_argument("--steps", "-s", type=int, default=10000)
     parser.add_argument("--steps_per_iter", "-spi", type=int, default=1000)
     parser.add_argument("--padding", "-p", default=1.2, type=float)
+    parser.add_argument("--platform", "-d", default="CUDA", type=str)
     parser.add_argument(
         "--shape",
         type=str,

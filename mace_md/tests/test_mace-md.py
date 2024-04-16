@@ -28,7 +28,8 @@ logger = logging.getLogger("DEBUG")
 @pytest.mark.parametrize("integrator", ["langevin", "nose-hoover", "verlet"])
 @pytest.mark.parametrize("nl", ["torch", "nnpops"])
 @pytest.mark.parametrize("minimiser", ["ase", "openmm"])
-def test_pure_mace_md(file, nl, remove_cmm, minimiser, integrator):
+@pytest.mark.parametrize("platform", ["CPU"])
+def test_pure_mace_md(file, nl, remove_cmm, minimiser, integrator, platform):
     file_stub = file.split(".")[0]
     cmm = "cmm" if remove_cmm else "nocmm"
 
@@ -56,6 +57,7 @@ def test_pure_mace_md(file, nl, remove_cmm, minimiser, integrator):
         output_file=output_file,
         restart=False,
         integrator_name=integrator,
+        platform=platform,
     )
 
     # check the output file exists and is larger than 0 bytes

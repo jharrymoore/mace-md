@@ -211,6 +211,7 @@ class MACESystemBase(ABC):
         restart: bool,
         run_metadynamics: bool = False,
         lambda_schedule: Optional[List[float]] = None,
+        platform: str = "CUDA",
         integrator_name: str = "langevin",
     ):
         """Runs plain MD on the mixed system, writes a pdb trajectory
@@ -265,7 +266,7 @@ class MACESystemBase(ABC):
             self.modeller.topology,
             self.system,
             integrator,
-            platform=Platform.getPlatformByName("CUDA"),
+            platform=Platform.getPlatformByName(platform),
             platformProperties={"Precision": self.openmm_precision},
         )
         if lambda_schedule is not None:
@@ -413,6 +414,7 @@ class MACESystemBase(ABC):
                 "number_of_iterations": steps,
                 "online_analysis_interval": checkpoint_interval,
                 "online_analysis_minimum_iterations": 10,
+                "replica_mixing_scheme": "swap-neighbors",
             },
             storage_kwargs={
                 "storage": os.path.join(self.output_dir, "repex.nc"),
