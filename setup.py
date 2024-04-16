@@ -1,6 +1,7 @@
 """
 Various Python tools for OpenMM.
 """
+
 import sys
 from setuptools import setup, find_packages
 
@@ -38,7 +39,7 @@ setup(
     zip_safe=False,
     entry_points={
         "console_scripts": [
-            "mace-md = mace_md.cli.mace_md:main",
+            "mace-md = mace_md.cli.entrypoint:main",
         ]
     },
 )
