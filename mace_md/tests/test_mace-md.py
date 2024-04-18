@@ -1,5 +1,9 @@
 # unit tests for mace-md entrypoints
 # uses pytest to run
+import torch
+import intel_extension_for_pytorch as ipex
+import openmmtorch
+import openmm
 import os
 import pytest
 import shutil
@@ -9,10 +13,12 @@ from openmmtools.integrators import (
 )
 
 from mace_md.hybrid_md import PureSystem, MixedSystem
-import torch
 from openmm import unit
 import logging
 import tempfile
+
+
+print(openmm)
 
 torch.set_default_dtype(torch.float64)
 
@@ -28,7 +34,7 @@ logger = logging.getLogger("DEBUG")
 @pytest.mark.parametrize("integrator", ["langevin", "nose-hoover", "verlet"])
 @pytest.mark.parametrize("nl", ["torch", "nnpops"])
 @pytest.mark.parametrize("minimiser", ["ase", "openmm"])
-@pytest.mark.parametrize("platform", ["CPU"])
+@pytest.mark.parametrize("platform", ["OpenCL"])
 def test_pure_mace_md(file, nl, remove_cmm, minimiser, integrator, platform):
     file_stub = file.split(".")[0]
     cmm = "cmm" if remove_cmm else "nocmm"
@@ -36,6 +42,11 @@ def test_pure_mace_md(file, nl, remove_cmm, minimiser, integrator, platform):
     # inspect the dtype of the model
     model = torch.load(model_path)
     dtype = model.r_max.dtype
+
+
+    if minimiser == "ase" and torch.cuda.device_count() < 1:
+        pytest.skip("ASE requires a CUDA device")
+
 
     system = PureSystem(
         ml_mol=os.path.join(TEST_DIR, file),
