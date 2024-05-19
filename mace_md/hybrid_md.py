@@ -12,6 +12,7 @@ from rdkit.Chem.rdmolfiles import MolFromPDBFile, MolFromXYZFile
 from openmm.openmm import Platform, System
 from typing import List, Tuple, Optional
 from openmm.app.internal.unitcell import reducePeriodicBoxVectors
+from atomsmm.reporters import ExtendedStateDataReporter
 from openmm import (
     LangevinMiddleIntegrator,
     RPMDIntegrator,
@@ -210,7 +211,8 @@ class MACESystemBase(ABC):
         output_file: str,
         restart: bool,
         run_metadynamics: bool = False,
-        lambda_schedule: Optional[List[float]] = None,
+        lambda_schedule: Optional[float] = None,
+        platform: str = "CUDA",
         integrator_name: str = "langevin",
     ):
         """Runs plain MD on the mixed system, writes a pdb trajectory
@@ -233,6 +235,16 @@ class MACESystemBase(ABC):
             integrator = RPMDIntegrator(
                 8, self.temperature, self.friction_coeff, self.timestep
             )
+        elif integrator_name == "langevin-alchemical":
+            pass
+            # TODO: this will be a mixin integrator that just bumps the appropriate global variable
+            # integrator = AlchemicalNonequilibriumLangevinIntegrator(
+            #     alchemical_functions={"lambda_interpolate": "lambda"},
+            #     nsteps_neq=steps,
+            #     temperature=self.temperature,
+            #     collision_rate=self.friction_coeff,
+            #     timestep=self.timestep,
+            # )
         else:
             raise ValueError(
                 f"Unrecognized integrator name {integrator_name}, must be one of ['langevin', 'nose-hoover', 'rpmd', 'verlet']"
@@ -259,18 +271,18 @@ class MACESystemBase(ABC):
                 # cv1_dsl_string=self.cv1_dsl_string, cv2_dsl_string=self.cv2_dsl_string
             )
         # set alchemical state
-
         logger.debug(f"Running mixed MD for {steps} steps")
         simulation = Simulation(
             self.modeller.topology,
             self.system,
             integrator,
-            platform=Platform.getPlatformByName("CUDA"),
+            platform=Platform.getPlatformByName(platform),
             platformProperties={"Precision": self.openmm_precision},
         )
         if lambda_schedule is not None:
             logger.info(f"Setting global lambda_interpolate to {lambda_schedule}")
             simulation.context.setParameter("lambda_interpolate", lambda_schedule)
+            dhdl = 1 / steps
         checkpoint_filepath = os.path.join(self.output_dir, output_file[:-4] + ".chk")
         if restart and os.path.isfile(checkpoint_filepath):
             with open(checkpoint_filepath, "rb") as f:
@@ -307,21 +319,43 @@ class MACESystemBase(ABC):
         if self.set_temperature:
             logger.info(f"Setting temperature to {self.temperature} K")
             simulation.context.setVelocitiesToTemperature(self.temperature)
-        reporter = StateDataReporter(
-            file=sys.stdout,
-            reportInterval=interval,
-            step=True,
-            time=True,
-            totalEnergy=True,
-            potentialEnergy=True,
-            density=True,
-            volume=True,
-            temperature=True,
-            speed=True,
-            progress=True,
-            totalSteps=steps,
-            remainingTime=True,
-        )
+        # reporter = StateDataReporter(
+        if lambda_schedule is not None:
+            reporter = ExtendedStateDataReporter(
+                file=sys.stdout,
+                extraFile=os.path.join(self.output_dir, "statedata.txt"),
+                reportInterval=1,
+                step=True,
+                time=True,
+                totalEnergy=True,
+                potentialEnergy=True,
+                density=True,
+                volume=True,
+                temperature=True,
+                speed=True,
+                progress=True,
+                totalSteps=steps,
+                remainingTime=True,
+                globalParameters=["lambda_interpolate"],
+                energyDerivatives=["lambda_interpolate"],
+            )
+        else:
+            reporter = StateDataReporter(
+                file=sys.stdout,
+                reportInterval=interval,
+                step=True,
+                time=True,
+                totalEnergy=True,
+                potentialEnergy=True,
+                density=True,
+                volume=True,
+                temperature=True,
+                speed=True,
+                progress=True,
+                totalSteps=steps,
+                remainingTime=True,
+            )
+
         simulation.reporters.append(reporter)
         # keep periodic box off to make quick visualisation easier
         simulation.reporters.append(
@@ -369,6 +403,15 @@ class MACESystemBase(ABC):
             np.save(os.path.join(self.output_dir, "free_energy.npy"), fe)
 
         else:
+            # for _ in range(steps):
+            #     simulation.step(1)
+            #     lambda_schedule += dhdl
+            #     simulation.context.setParameter("lambda_interpolate", lambda_schedule)
+            # print(
+            #     simulation.context.getState(
+            #         getParameterDerivatives=True
+            #     ).getEnergyParameterDerivatives()
+            # )
             simulation.step(steps)
             # for interval in range(0, steps, interval):
             #     simulation.step(interval)
@@ -413,6 +456,7 @@ class MACESystemBase(ABC):
                 "number_of_iterations": steps,
                 "online_analysis_interval": checkpoint_interval,
                 "online_analysis_minimum_iterations": 10,
+                "replica_mixing_scheme": "swap-all",
             },
             storage_kwargs={
                 "storage": os.path.join(self.output_dir, "repex.nc"),
@@ -580,13 +624,13 @@ class MACESystemBase(ABC):
         #     reportInterval=interval,
         # )
         # simulation.reporters.append(netcdf_reporter)
-        dcd_reporter = DCDReporter(
-            file=os.path.join(self.output_dir, "output.dcd"),
-            reportInterval=interval,
-            append=restart,
-            enforcePeriodicBox=False if self.unwrap else True,
-        )
-        simulation.reporters.append(dcd_reporter)
+        # dcd_reporter = DCDReporter(
+        #     file=os.path.join(self.output_dir, "output.dcd"),
+        #     reportInterval=interval,
+        #     append=restart,
+        #     enforcePeriodicBox=False if self.unwrap else True,
+        # )
+        # simulation.reporters.append(dcd_reporter)
         # hdf5_reporter = HDF5Reporter(
         #     file=os.path.join(self.output_dir, output_file[:-4] + ".h5"),
         #     reportInterval=interval,
