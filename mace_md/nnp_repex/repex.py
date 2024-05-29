@@ -197,6 +197,9 @@ class RepexConstructor:
             _sampler.number_of_iterations = self._replica_exchange_sampler_kwargs[
                 "number_of_iterations"
             ]
+            _sampler.replica_mixing_scheme = self._replica_exchange_sampler_kwargs[
+                "replica_mixing_scheme"
+            ]
         else:
             logging.info("Starting Repex sampling from scratch")
             _sampler = NNPRepexSampler(

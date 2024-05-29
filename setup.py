@@ -40,6 +40,7 @@ setup(
     entry_points={
         "console_scripts": [
             "mace-md = mace_md.cli.entrypoint:main",
+            "mace-benchmark = mace_md.cli.benchmark:main",
         ]
     },
 )

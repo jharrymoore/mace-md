@@ -235,16 +235,6 @@ class MACESystemBase(ABC):
             integrator = RPMDIntegrator(
                 8, self.temperature, self.friction_coeff, self.timestep
             )
-        elif integrator_name == "langevin-alchemical":
-            pass
-            # TODO: this will be a mixin integrator that just bumps the appropriate global variable
-            # integrator = AlchemicalNonequilibriumLangevinIntegrator(
-            #     alchemical_functions={"lambda_interpolate": "lambda"},
-            #     nsteps_neq=steps,
-            #     temperature=self.temperature,
-            #     collision_rate=self.friction_coeff,
-            #     timestep=self.timestep,
-            # )
         else:
             raise ValueError(
                 f"Unrecognized integrator name {integrator_name}, must be one of ['langevin', 'nose-hoover', 'rpmd', 'verlet']"
@@ -320,41 +310,41 @@ class MACESystemBase(ABC):
             logger.info(f"Setting temperature to {self.temperature} K")
             simulation.context.setVelocitiesToTemperature(self.temperature)
         # reporter = StateDataReporter(
-        if lambda_schedule is not None:
-            reporter = ExtendedStateDataReporter(
-                file=sys.stdout,
-                extraFile=os.path.join(self.output_dir, "statedata.txt"),
-                reportInterval=1,
-                step=True,
-                time=True,
-                totalEnergy=True,
-                potentialEnergy=True,
-                density=True,
-                volume=True,
-                temperature=True,
-                speed=True,
-                progress=True,
-                totalSteps=steps,
-                remainingTime=True,
-                globalParameters=["lambda_interpolate"],
-                energyDerivatives=["lambda_interpolate"],
-            )
-        else:
-            reporter = StateDataReporter(
-                file=sys.stdout,
-                reportInterval=interval,
-                step=True,
-                time=True,
-                totalEnergy=True,
-                potentialEnergy=True,
-                density=True,
-                volume=True,
-                temperature=True,
-                speed=True,
-                progress=True,
-                totalSteps=steps,
-                remainingTime=True,
-            )
+        # if lambda_schedule is not None:
+        #     reporter = ExtendedStateDataReporter(
+        #         file=sys.stdout,
+        #         extraFile=os.path.join(self.output_dir, "statedata.txt"),
+        #         reportInterval=1,
+        #         step=True,
+        #         time=True,
+        #         totalEnergy=True,
+        #         potentialEnergy=True,
+        #         density=True,
+        #         volume=True,
+        #         temperature=True,
+        #         speed=True,
+        #         progress=True,
+        #         totalSteps=steps,
+        #         remainingTime=True,
+        #         globalParameters=["lambda_interpolate"],
+        #         energyDerivatives=["lambda_interpolate"],
+        #     )
+        # else:
+        reporter = StateDataReporter(
+            file=sys.stdout,
+            reportInterval=interval,
+            step=True,
+            time=True,
+            totalEnergy=True,
+            potentialEnergy=True,
+            density=True,
+            volume=True,
+            temperature=True,
+            speed=True,
+            progress=True,
+            totalSteps=steps,
+            remainingTime=True,
+        )
 
         simulation.reporters.append(reporter)
         # keep periodic box off to make quick visualisation easier
@@ -456,7 +446,7 @@ class MACESystemBase(ABC):
                 "number_of_iterations": steps,
                 "online_analysis_interval": checkpoint_interval,
                 "online_analysis_minimum_iterations": 10,
-                "replica_mixing_scheme": "swap-all",
+                "replica_mixing_scheme": None,
             },
             storage_kwargs={
                 "storage": os.path.join(self.output_dir, "repex.nc"),
