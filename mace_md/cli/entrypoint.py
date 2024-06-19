@@ -145,7 +145,7 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             nonbondedCutoff=args.nonbondedCutoff,
             potential=args.potential,
             padding=args.padding,
-            shape=args.shape,
+            shape=args.box_shape,
             temperature=args.temperature,
             dtype=dtype,
             nl=args.nl,

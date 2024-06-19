@@ -4,6 +4,7 @@ import sys
 import os
 from argparse import ArgumentParser
 
+
 def setup_logger(
     level: Union[int, str] = logging.INFO,
     tag: Optional[str] = None,
@@ -29,6 +30,7 @@ def setup_logger(
 
         logger.addHandler(fh)
 
+
 def parse_arguments():
 
     parser = ArgumentParser()
@@ -48,7 +50,7 @@ def parse_arguments():
     parser.add_argument("--steps_per_iter", "-spi", type=int, default=1000)
     parser.add_argument("--padding", "-p", default=1.2, type=float)
     parser.add_argument(
-        "--shape",
+        "--box_shape",
         type=str,
         default="cube",
         choices=["cube", "dodecahedron", "octahedron"],
@@ -87,7 +89,7 @@ def parse_arguments():
         help="If true, extracts non-bonded components of the SM forcefield, adds them \
             to a separate array on the atoms object, writes back out",
     )
-    parser.add_argument("--replicas", type=int, default=10)
+    parser.add_argument("--replicas", type=int, default=1)
     parser.add_argument("--lambda_schedule", type=str, default=None)
     parser.add_argument(
         "--direction", type=str, choices=["forward", "reverse"], default="forward"

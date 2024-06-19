@@ -10,6 +10,7 @@ from tempfile import mkstemp
 from ase import Atoms
 from rdkit.Chem.rdmolfiles import MolFromPDBFile, MolFromXYZFile
 from openmm.openmm import Platform, System
+from openmm import app
 from typing import List, Tuple, Optional
 from openmm.app.internal.unitcell import reducePeriodicBoxVectors
 from atomsmm.reporters import ExtendedStateDataReporter
@@ -330,23 +331,41 @@ class MACESystemBase(ABC):
         #         energyDerivatives=["lambda_interpolate"],
         #     )
         # else:
-        reporter = StateDataReporter(
-            file=sys.stdout,
-            reportInterval=interval,
-            step=True,
-            time=True,
-            totalEnergy=True,
-            potentialEnergy=True,
-            density=True,
-            volume=True,
-            temperature=True,
-            speed=True,
-            progress=True,
-            totalSteps=steps,
-            remainingTime=True,
-        )
 
-        simulation.reporters.append(reporter)
+        simulation.reporters.append(
+            StateDataReporter(
+                file=sys.stdout,
+                reportInterval=interval,
+                step=True,
+                time=True,
+                totalEnergy=True,
+                potentialEnergy=True,
+                density=True,
+                volume=True,
+                temperature=True,
+                speed=True,
+                progress=True,
+                totalSteps=steps,
+                remainingTime=True,
+            )
+        )
+        simulation.reporters.append(
+            StateDataReporter(
+                file=os.path.join(self.output_dir, "mace_md.log"),
+                reportInterval=interval,
+                step=True,
+                time=True,
+                totalEnergy=True,
+                potentialEnergy=True,
+                density=True,
+                volume=True,
+                temperature=True,
+                speed=True,
+                progress=True,
+                totalSteps=steps,
+                remainingTime=True,
+            )
+        )
         # keep periodic box off to make quick visualisation easier
         simulation.reporters.append(
             PDBReporter(
@@ -930,6 +949,10 @@ class PureSystem(MACESystemBase):
     SM_FF: str
     modeller: Modeller
     boxsize: Optional[int]
+    padding: float
+    ionicStrength: float
+    water_model: str
+    box_shape: str
 
     def __init__(
         self,
@@ -950,6 +973,10 @@ class PureSystem(MACESystemBase):
         friction_coeff: float = 1.0,
         timestep: float = 1.0,
         smff: str = "1.0",
+        padding: float = 1.2,
+        shape: str = "cube",
+        ionicStrength: float = 0.0,
+        water_model: str = "tip3p",
         remove_cmm: bool = False,
         unwrap: bool = False,
         set_temperature: bool = False,
@@ -982,6 +1009,10 @@ class PureSystem(MACESystemBase):
         self.resname = resname
         self.nnpify_type = nnpify_type
         self.constrain_res = constrain_res
+        self.box_shape = shape
+        self.water_model = water_model
+        self.ionicStrength = ionicStrength
+        self.padding = padding
 
         self.create_system(ml_mol=ml_mol, model_path=model_path)
 
@@ -1078,6 +1109,17 @@ class PureSystem(MACESystemBase):
 
             logger.info(
                 f"Parased box vectors {self.modeller.topology.getPeriodicBoxVectors()} from pdb file"
+            )
+            # optionally add solvent - note this is only possible when working with pdb file
+            forcefield = app.ForceField("amber14-all.xml", "amber14/tip3p.xml")
+            logger.info("Solvating system...")
+            self.modeller.addSolvent(
+                forcefield,
+                model=self.water_model,
+                padding=self.padding * nanometers,
+                boxShape=self.box_shape,
+                ionicStrength=self.ionicStrength * molar,
+                neutralize=False,
             )
 
             # write the prepared system to pd bfile
