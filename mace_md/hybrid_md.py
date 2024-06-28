@@ -972,7 +972,7 @@ class PureSystem(MACESystemBase):
         friction_coeff: float = 1.0,
         timestep: float = 1.0,
         smff: str = "1.0",
-        padding: float = 1.2,
+        padding: float = 0.0,
         shape: str = "cube",
         ionicStrength: float = 0.0,
         water_model: str = "tip3p",
