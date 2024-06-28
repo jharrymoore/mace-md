@@ -1,8 +1,10 @@
-name: mace-openmm-test
+name: mace-openmm
 channels:
   - conda-forge
   - defaults
 dependencies:
+  - python=3.10
+  - pytorch=2.3.*
   - mdtraj
   - openmm
   - openmm-torch
@@ -19,4 +21,4 @@ dependencies:
     - mpi4py
     - git+https://github.com/jharrymoore/mace.git@softcore
     - git+https://github.com/jharrymoore/openmm-ml.git@ml_alchemy
-    - git+https://github.com/jharrymoore/mace-md.git --install-option="--no-deps"
+    - git+https://github.com/jharrymoore/mace-md.git
