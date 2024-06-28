@@ -1,0 +1,22 @@
+name: mace-openmm-test
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - mdtraj
+  - openmm
+  - openmm-torch
+  - openmmtools
+  - nnpops
+  - pyyaml
+  - numba
+  - rdkit
+  - openff-toolkit
+  - openmmforcefields
+  - scikit-learn
+  - pip
+  - pip:
+    - mpi4py
+    - git+https://github.com/jharrymoore/mace.git@softcore
+    - git+https://github.com/jharrymoore/openmm-ml.git@ml_alchemy
+    - git+https://github.com/jharrymoore/mace-md.git --install-option="--no-deps"
