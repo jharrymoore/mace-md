@@ -13,7 +13,6 @@ from openmm.openmm import Platform, System
 from openmm import app
 from typing import List, Tuple, Optional
 from openmm.app.internal.unitcell import reducePeriodicBoxVectors
-from atomsmm.reporters import ExtendedStateDataReporter
 from openmm import (
     LangevinMiddleIntegrator,
     RPMDIntegrator,
@@ -1111,16 +1110,17 @@ class PureSystem(MACESystemBase):
                 f"Parased box vectors {self.modeller.topology.getPeriodicBoxVectors()} from pdb file"
             )
             # optionally add solvent - note this is only possible when working with pdb file
-            forcefield = app.ForceField("amber14-all.xml", "amber14/tip3p.xml")
-            logger.info("Solvating system...")
-            self.modeller.addSolvent(
-                forcefield,
-                model=self.water_model,
-                padding=self.padding * nanometers,
-                boxShape=self.box_shape,
-                ionicStrength=self.ionicStrength * molar,
-                neutralize=False,
-            )
+            if self.padding > 0:
+                forcefield = app.ForceField("amber14-all.xml", "amber14/tip3p.xml")
+                logger.info("Solvating system...")
+                self.modeller.addSolvent(
+                    forcefield,
+                    model=self.water_model,
+                    padding=self.padding * nanometers,
+                    boxShape=self.box_shape,
+                    ionicStrength=self.ionicStrength * molar,
+                    neutralize=False,
+                )
 
             # write the prepared system to pd bfile
             with open(os.path.join(self.output_dir, "prepared_system.pdb"), "w") as f:
