@@ -377,7 +377,7 @@ class MACESystemBase(ABC):
             DCDReporter(
                 file=os.path.join(self.output_dir, "output.dcd"),
                 reportInterval=interval,
-                append=restart,
+                append=restart if os.path.isfile(os.path.join(self.output_dir, "output.dcd")) else False,
                 enforcePeriodicBox=False if self.unwrap else True,
             )
         )
