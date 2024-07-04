@@ -11,6 +11,7 @@ from ase import Atoms
 from rdkit.Chem.rdmolfiles import MolFromPDBFile, MolFromXYZFile
 from openmm.openmm import Platform, System
 from openmm import app
+from atomsmm import ExtendedStateDataReporter
 from typing import List, Tuple, Optional
 from openmm.app.internal.unitcell import reducePeriodicBoxVectors
 from openmm import (
@@ -310,30 +311,10 @@ class MACESystemBase(ABC):
             logger.info(f"Setting temperature to {self.temperature} K")
             simulation.context.setVelocitiesToTemperature(self.temperature)
         # reporter = StateDataReporter(
-        # if lambda_schedule is not None:
-        #     reporter = ExtendedStateDataReporter(
-        #         file=sys.stdout,
-        #         extraFile=os.path.join(self.output_dir, "statedata.txt"),
-        #         reportInterval=1,
-        #         step=True,
-        #         time=True,
-        #         totalEnergy=True,
-        #         potentialEnergy=True,
-        #         density=True,
-        #         volume=True,
-        #         temperature=True,
-        #         speed=True,
-        #         progress=True,
-        #         totalSteps=steps,
-        #         remainingTime=True,
-        #         globalParameters=["lambda_interpolate"],
-        #         energyDerivatives=["lambda_interpolate"],
-        #     )
-        # else:
-
-        simulation.reporters.append(
-            StateDataReporter(
+        if lambda_schedule is not None:
+            simulation.reporters.append(ExtendedStateDataReporter(
                 file=sys.stdout,
+                extraFile=os.path.join(self.output_dir, "mace_md.log"),
                 reportInterval=interval,
                 step=True,
                 time=True,
@@ -346,25 +327,45 @@ class MACESystemBase(ABC):
                 progress=True,
                 totalSteps=steps,
                 remainingTime=True,
+                globalParameters=["lambda_interpolate"],
+                energyDerivatives=["lambda_interpolate"],
+            ))
+        else:
+
+            simulation.reporters.append(
+                StateDataReporter(
+                    file=sys.stdout,
+                    reportInterval=interval,
+                    step=True,
+                    time=True,
+                    totalEnergy=True,
+                    potentialEnergy=True,
+                    density=True,
+                    volume=True,
+                    temperature=True,
+                    speed=True,
+                    progress=True,
+                    totalSteps=steps,
+                    remainingTime=True,
+                )
             )
-        )
-        simulation.reporters.append(
-            StateDataReporter(
-                file=os.path.join(self.output_dir, "mace_md.log"),
-                reportInterval=interval,
-                step=True,
-                time=True,
-                totalEnergy=True,
-                potentialEnergy=True,
-                density=True,
-                volume=True,
-                temperature=True,
-                speed=True,
-                progress=True,
-                totalSteps=steps,
-                remainingTime=True,
+            simulation.reporters.append(
+                StateDataReporter(
+                    file=os.path.join(self.output_dir, "mace_md.log"),
+                    reportInterval=interval,
+                    step=True,
+                    time=True,
+                    totalEnergy=True,
+                    potentialEnergy=True,
+                    density=True,
+                    volume=True,
+                    temperature=True,
+                    speed=True,
+                    progress=True,
+                    totalSteps=steps,
+                    remainingTime=True,
+                )
             )
-        )
         # keep periodic box off to make quick visualisation easier
         simulation.reporters.append(
             PDBReporter(
