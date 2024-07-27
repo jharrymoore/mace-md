@@ -41,6 +41,7 @@ from openmm.app import (
     PME,
     HBonds,
 )
+from mdtraj.reporters import NetCDFReporter
 from ase.optimize import LBFGS
 from openmm.app.metadynamics import Metadynamics, BiasVariable
 from openmm.app.topology import Topology
@@ -627,11 +628,11 @@ class MACESystemBase(ABC):
             )
         )
         # we need this to hold the box vectors for NPT simulations
-        # netcdf_reporter = NetCDFReporter(
-        #     file=os.path.join(self.output_dir, output_file[:-4] + ".nc"),
-        #     reportInterval=interval,
-        # )
-        # simulation.reporters.append(netcdf_reporter)
+        netcdf_reporter = NetCDFReporter(
+            file=os.path.join(self.output_dir, output_file[:-4] + ".nc"),
+            reportInterval=interval,
+        )
+        simulation.reporters.append(netcdf_reporter)
         # dcd_reporter = DCDReporter(
         #     file=os.path.join(self.output_dir, "output.dcd"),
         #     reportInterval=interval,
