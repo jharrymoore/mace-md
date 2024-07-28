@@ -35,6 +35,7 @@ def parse_arguments():
 
     parser = ArgumentParser()
 
+    parser.add_argument("--system_id", type=str, default=os.getcwd())
     parser.add_argument("--file", "-f", type=str)
     parser.add_argument(
         "--ml_mol",

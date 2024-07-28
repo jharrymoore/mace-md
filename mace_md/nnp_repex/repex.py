@@ -147,6 +147,7 @@ class RepexConstructor:
         mcmc_moves_kwargs: Dict,
         topology: app.Topology,
         storage_kwargs,
+        system_id: str,
         replica_exchange_sampler_kwargs,
         lambda_schedule: Optional[Iterable[float]] = None,
         restart: bool = False,
@@ -169,6 +170,7 @@ class RepexConstructor:
         self._extra_kwargs = kwargs
         self._lambda_schedule = lambda_schedule
         self._topology = topology
+        self.system_id = system_id
 
         # initial positions
         self._initial_positions = initial_positions
@@ -216,6 +218,7 @@ class RepexConstructor:
                 temperature=self._temperature,
                 lambda_schedule=self._lambda_schedule,
                 storage_kwargs=self._storage_kwargs,
+                system_id=self.system_id,
                 setup_equilibration_intervals=self._intervals_per_lambda_window,
                 equilibration_protocol=self._equilibration_protocol,
                 steps_per_setup_equilibration_interval=self._steps_per_equilibration_interval,

@@ -112,6 +112,7 @@ class MACESystemBase(ABC):
     modeller: Modeller
     system: System
     mm_only: bool
+    system_id: str
     nl: str
     max_n_pairs: int
     remove_cmm: bool
@@ -128,6 +129,7 @@ class MACESystemBase(ABC):
         nl: str,
         max_n_pairs: int,
         minimiser: str,
+        system_id: str,
         pressure: Optional[float] = None,
         dtype: torch.dtype = torch.float64,
         friction_coeff: float = 1.0,
@@ -149,6 +151,7 @@ class MACESystemBase(ABC):
         self.timestep = timestep * femtosecond
         self.dtype = dtype
         self.nl = nl
+        self.system_id = system_id
         self.max_n_pairs = max_n_pairs
         self.set_temperature = set_temperature
         self.output_dir = output_dir
@@ -412,21 +415,7 @@ class MACESystemBase(ABC):
             np.save(os.path.join(self.output_dir, "free_energy.npy"), fe)
 
         else:
-            # for _ in range(steps):
-            #     simulation.step(1)
-            #     lambda_schedule += dhdl
-            #     simulation.context.setParameter("lambda_interpolate", lambda_schedule)
-            # print(
-            #     simulation.context.getState(
-            #         getParameterDerivatives=True
-            #     ).getEnergyParameterDerivatives()
-            # )
             simulation.step(steps)
-            # for interval in range(0, steps, interval):
-            #     simulation.step(interval)
-            #     # optionally take snapshot of the system, retrieve forces and energies
-            #     state = simulation.getContext().getState(getForces=True, getPotentialEnergy=True)
-            #
 
     def run_repex(
         self,
@@ -453,6 +442,7 @@ class MACESystemBase(ABC):
             temperature=self.temperature * kelvin,
             lambda_schedule=lambda_schedule,
             n_states=replicas,
+            system_id=self.system_id,
             restart=restart,
             topology=self.modeller.topology,
             mcmc_moves_kwargs={
@@ -965,6 +955,7 @@ class PureSystem(MACESystemBase):
         nl: str,
         max_n_pairs: int,
         minimiser: str,
+        system_id: str,
         constrain_res: Optional[List[str]] = None,
         decouple: bool = False,
         file: Optional[str] = None,
@@ -1001,6 +992,7 @@ class PureSystem(MACESystemBase):
             smff=smff,
             minimiser=minimiser,
             remove_cmm=remove_cmm,
+            system_id=system_id,
             unwrap=unwrap,
             set_temperature=set_temperature,
         )

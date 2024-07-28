@@ -191,6 +191,7 @@ class NNPCompatibilityMixin(object):
         equilibration_protocol: str,
         replica_exchange_sampler_kwargs: dict,
         topology: app.Topology,
+        system_id: str,
         n_replicas=None,
         lambda_schedule: Optional[Iterable[float]] = None,
         lambda_protocol=None,
@@ -335,6 +336,7 @@ class NNPCompatibilityMixin(object):
                 "lambda_schedule": np.array(lambda_schedule),
                 "replica_mixing_scheme": replica_exchange_sampler_kwargs["replica_mixing_scheme"],
                 "elements":elements,
+                "system_id": system_id
 
 
             }
