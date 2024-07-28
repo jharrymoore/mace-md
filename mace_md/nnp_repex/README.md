@@ -1,0 +1,1 @@
+The code under this folder is based on code from [here](https://github.com/dominicrufa/openmmtools/blob/ommml_compat/openmmtools/openmm_torch/repex.py) and [here](https://github.com/dominicrufa/openmmtools/blob/ommml_compat/openmmtools/alchemy.py), which is used under the MIT licence.  

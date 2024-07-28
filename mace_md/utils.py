@@ -91,6 +91,7 @@ def parse_arguments():
     )
     parser.add_argument("--replicas", type=int, default=1)
     parser.add_argument("--lambda_schedule", type=str, default=None)
+    parser.add_argument("--optimized_model", action="store_true")
     parser.add_argument(
         "--direction", type=str, choices=["forward", "reverse"], default="forward"
     )

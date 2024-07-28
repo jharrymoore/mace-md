@@ -131,6 +131,7 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             set_temperature=args.set_temperature,
             resname=args.resname,
             nnpify_type=args.ml_selection,
+            optimized_model=args.optimized_model
         )
 
     elif args.system_type == "hybrid":

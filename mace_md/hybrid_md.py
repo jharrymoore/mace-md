@@ -982,6 +982,7 @@ class PureSystem(MACESystemBase):
         set_temperature: bool = False,
         resname: Optional[str] = None,
         nnpify_type: Optional[str] = None,
+        optimized_model: bool = False
     ) -> None:
         super().__init__(
             # if file is None, we don't need  to create a topology, so we can pass the ml_mol
@@ -1013,6 +1014,7 @@ class PureSystem(MACESystemBase):
         self.water_model = water_model
         self.ionicStrength = ionicStrength
         self.padding = padding
+        self.optimized_model = optimized_model
 
         self.create_system(ml_mol=ml_mol, model_path=model_path)
 
@@ -1143,7 +1145,10 @@ class PureSystem(MACESystemBase):
             )
             logger.info(f"Creating alchemical system with solute atoms {solute_atoms}")
             self.system = ml_potential.createAlchemicalSystem(
-                topology, solute_atoms=solute_atoms
+                topology,
+                solute_atoms=solute_atoms, 
+                precision="single" if self.dtype == torch.float32 else "double",
+                optimized_model=self.optimized_model
             )
         else:
             self.system = ml_potential.createSystem(
@@ -1151,6 +1156,8 @@ class PureSystem(MACESystemBase):
                 dtype=self.dtype,
                 nl=self.nl,
                 max_n_pairs=self.max_n_pairs,
+                precision="single" if self.dtype == torch.float32 else "double",
+                optimized_model=self.optimized_model
             )
 
         if self.pressure is not None:
