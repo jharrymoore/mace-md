@@ -454,6 +454,7 @@ class MACESystemBase(ABC):
             lambda_schedule=lambda_schedule,
             n_states=replicas,
             restart=restart,
+            topology=self.modeller.topology,
             mcmc_moves_kwargs={
                 "timestep": 1.0 * femtoseconds,
                 "collision_rate": 10.0 / picoseconds,

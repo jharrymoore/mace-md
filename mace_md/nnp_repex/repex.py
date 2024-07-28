@@ -144,7 +144,8 @@ class RepexConstructor:
         intervals_per_lambda_window: int,
         steps_per_equilibration_interval: int,
         equilibration_protocol: str,
-        mcmc_moves_kwargs: Optional[Dict],
+        mcmc_moves_kwargs: Dict,
+        topology: app.Topology,
         storage_kwargs,
         replica_exchange_sampler_kwargs,
         lambda_schedule: Optional[Iterable[float]] = None,
@@ -167,6 +168,7 @@ class RepexConstructor:
         self._equilibration_protocol = equilibration_protocol
         self._extra_kwargs = kwargs
         self._lambda_schedule = lambda_schedule
+        self._topology = topology
 
         # initial positions
         self._initial_positions = initial_positions
@@ -217,6 +219,8 @@ class RepexConstructor:
                 setup_equilibration_intervals=self._intervals_per_lambda_window,
                 equilibration_protocol=self._equilibration_protocol,
                 steps_per_setup_equilibration_interval=self._steps_per_equilibration_interval,
+                replica_exchange_sampler_kwargs=self._replica_exchange_sampler_kwargs,
+                topology=self._topology,
                 **self._extra_kwargs,
             )
         return _sampler

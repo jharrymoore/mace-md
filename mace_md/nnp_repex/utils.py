@@ -1,4 +1,5 @@
 from typing import Optional, List, Iterable
+from openmm import app
 from openff.toolkit.topology import Molecule
 from openmm.app import ForceField
 from openmmforcefields.generators import SMIRNOFFTemplateGenerator
@@ -170,7 +171,7 @@ class NNPAlchemicalState(AlchemicalState):
             lambda_value = lambda_protocol.functions[parameter_name](global_lambda)
             setattr(self, parameter_name, lambda_value)
 
-
+:
 
 class NNPCompatibilityMixin(object):
     """
@@ -188,6 +189,8 @@ class NNPCompatibilityMixin(object):
         temperature,
         storage_kwargs,
         equilibration_protocol: str,
+        replica_exchange_sampler_kwargs: dict,
+        topology: app.Topology,
         n_replicas=None,
         lambda_schedule: Optional[Iterable[float]] = None,
         lambda_protocol=None,
@@ -320,9 +323,20 @@ class NNPCompatibilityMixin(object):
                 sampler_state_list.append(deepcopy(init_sampler_state))
 
         reporter = MultiStateReporter(**storage_kwargs)
+        elements = [a.element for a in topology.get_atoms()]
         self.create(
             thermodynamic_states=thermostate_list,
             sampler_states=sampler_state_list,
             storage=reporter,
+            # store lambda schedule, steps per iteration, swap_protocol, atom types
+        
+            metadata={
+                "md_steps_per_iter": replica_exchange_sampler_kwargs["steps_per_iteration"],
+                "lambda_schedule": np.array(lambda_schedule),
+                "replica_mixing_scheme": replica_exchange_sampler_kwargs["replica_mixing_scheme"],
+                "elements":elements,
+
+
+            }
         )
 
