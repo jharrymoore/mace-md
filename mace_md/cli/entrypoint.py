@@ -12,6 +12,7 @@ import ast
 numba_logger = logging.getLogger("numba")
 numba_logger.setLevel(logging.WARNING)
 
+torch._C._jit_set_nvfuser_enabled(False)
 
 class ConsoleColours:
     HEADER = "\033[95m"
