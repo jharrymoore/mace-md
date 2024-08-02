@@ -133,6 +133,7 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             resname=args.resname,
             nnpify_type=args.ml_selection,
             optimized_model=args.optimized_model
+            disable_pdb=args.disable_pdb
         )
 
     elif args.system_type == "hybrid":
@@ -164,6 +165,7 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             remove_cmm=args.remove_cmm,
             unwrap=args.unwrap,
             set_temperature=args.set_temperature,
+            disable_pdb=args.disable_pdb
         )
     else:
         raise ValueError(f"System type {args.system_type} not recognised!")

@@ -102,6 +102,10 @@ def parse_arguments():
         default="output.pdb",
         help="output file for the pdb reporter",
     )
+    parser.add_argument(
+        "--disable_pbc",
+        action="store_true")
+
     parser.add_argument("--log_level", default="INFO", type=str)
     parser.add_argument("--dtype", default="float64", choices=["float32", "float64"])
     parser.add_argument(
