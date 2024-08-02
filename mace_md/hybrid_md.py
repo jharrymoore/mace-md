@@ -128,6 +128,7 @@ class MACESystemBase(ABC):
         nl: str,
         max_n_pairs: int,
         minimiser: str,
+        disable_pdb: bool,
         pressure: Optional[float] = None,
         dtype: torch.dtype = torch.float64,
         friction_coeff: float = 1.0,
@@ -160,6 +161,7 @@ class MACESystemBase(ABC):
         logger.debug(f"OpenMM will use {self.openmm_precision} precision")
 
         self.SM_FF = set_smff(smff)
+        self.disable_pdb = disable_pdb
         logger.info(f"Using SMFF {self.SM_FF}")
 
         os.makedirs(self.output_dir, exist_ok=True)
@@ -367,13 +369,14 @@ class MACESystemBase(ABC):
             )
         )
         # keep periodic box off to make quick visualisation easier
-        simulation.reporters.append(
-            PDBReporter(
-                file=os.path.join(self.output_dir, output_file),
-                reportInterval=interval,
-                enforcePeriodicBox=False if self.unwrap else True,
+        if not self.disable_pdb:
+            simulation.reporters.append(
+                PDBReporter(
+                    file=os.path.join(self.output_dir, output_file),
+                    reportInterval=interval,
+                    enforcePeriodicBox=False if self.unwrap else True,
+                )
             )
-        )
         simulation.reporters.append(
             DCDReporter(
                 file=os.path.join(self.output_dir, "output.dcd"),
@@ -964,6 +967,7 @@ class PureSystem(MACESystemBase):
         nl: str,
         max_n_pairs: int,
         minimiser: str,
+        disable_pdb: bool,
         constrain_res: Optional[List[str]] = None,
         decouple: bool = False,
         file: Optional[str] = None,
