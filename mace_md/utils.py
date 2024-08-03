@@ -151,12 +151,6 @@ def parse_arguments():
         type=str,
     )
     parser.add_argument(
-        "--nl",
-        help="which neighbour list to use",
-        choices=["nnpops", "torch"],
-        default="nnpops",
-    )
-    parser.add_argument(
         "--max_n_pairs",
         help="maximum number of pairs to return for the neighbour list",
         type=int,

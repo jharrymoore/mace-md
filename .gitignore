@@ -2,3 +2,4 @@
 junk
 build
 xpu_test
+__pycache__/
