@@ -465,7 +465,7 @@ class MACESystemBase(ABC):
                 "number_of_iterations": steps,
                 "online_analysis_interval": checkpoint_interval,
                 "online_analysis_minimum_iterations": 10,
-                "replica_mixing_scheme": None,
+                "replica_mixing_scheme": "swap-all",
             },
             storage_kwargs={
                 "storage": os.path.join(self.output_dir, "repex.nc"),
