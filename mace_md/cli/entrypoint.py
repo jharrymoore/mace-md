@@ -194,6 +194,7 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             steps_per_mc_move=args.steps_per_iter,
             equilibration_protocol=args.equil,
             checkpoint_interval=args.interval,
+            replica_mixing_scheme=args.replica_mixing_scheme,
         )
     elif args.run_type == "neq":
         system.run_neq_switching(
