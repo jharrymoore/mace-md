@@ -114,14 +114,12 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             file=args.file,
             # ml_mol=args.ml_mol,
             model_path=args.model_path,
-            potential=args.potential,
             output_dir=args.output_dir,
             temperature=args.temperature,
             pressure=args.pressure,
             dtype=dtype,
             decouple=args.decouple,
             constrain_res=args.constrain_res,
-            max_n_pairs=args.max_n_pairs,
             timestep=args.timestep,
             smff=args.smff,
             boxsize=args.box,
@@ -177,9 +175,8 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             args.lambda_schedule = args.lambda_schedule[0]
 
         system.propagate(
-            args.steps,
-            args.interval,
-            args.output_file,
+            steps=args.steps,
+            interval=args.interval,
             run_metadynamics=args.meta,
             integrator_name=args.integrator,
             lambda_schedule=args.lambda_schedule,
@@ -192,21 +189,10 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             steps=args.steps,
             lambda_schedule=args.lambda_schedule,
             steps_per_mc_move=args.steps_per_iter,
-            equilibration_protocol=args.equil,
+            equilibration_protocol=args.equilibration_protocol,
             checkpoint_interval=args.interval,
             replica_mixing_scheme=args.replica_mixing_scheme,
         )
-    elif args.run_type == "neq":
-        system.run_neq_switching(
-            steps=args.steps,
-            interval=args.interval,
-            restart=args.restart,
-            output_file=args.output_file,
-            direction=args.direction,
-        )
-    elif args.run_type == "atm":
-        raise NotImplementedError
-        system.run_atm(args.steps, args.interval)
     else:
         raise ValueError(f"run_type {args.run_type} was not recognised")
 

@@ -60,7 +60,6 @@ def parse_arguments():
     parser.add_argument("--constrain_res", type=str, default=None)
     parser.add_argument("--nonbondedCutoff", "-c", default=1.0, type=float)
     parser.add_argument("--ionic_strength", "-i", default=0.15, type=float)
-    parser.add_argument("--potential", default="mace", type=str)
     parser.add_argument("--temperature", type=float, default=298.15)
     parser.add_argument(
         "--minimiser", type=str, choices=["openmm", "ase"], default=None
@@ -92,12 +91,10 @@ def parse_arguments():
             to a separate array on the atoms object, writes back out",
     )
     parser.add_argument("--replicas", type=int, default=1)
-    parser.add_argument("--replica_mixing_scheme", type=ReplicaMixingScheme, default=ReplicaMixingScheme.SWAP_ALL)
+    parser.add_argument("--replica_mixing_scheme", type=str, default=ReplicaMixingScheme.SWAP_ALL)
     parser.add_argument("--lambda_schedule", type=str, default=None)
     parser.add_argument("--optimized_model", action="store_true")
-    parser.add_argument(
-        "--direction", type=str, choices=["forward", "reverse"], default="forward"
-    )
+    parser.add_argument("--pre-equilibrate", action="store_true")
     parser.add_argument(
         "--output_file",
         "-o",
@@ -125,7 +122,7 @@ def parse_arguments():
         action="store_true",
     )
     parser.add_argument(
-        "--equil", type=str, choices=["minimise", "gentle"], default="minimise"
+        "--equilibration_protocol", type=str, choices=["minimise", "gentle"], default="minimise"
     )
     parser.add_argument(
         "--forcefields",
@@ -152,12 +149,6 @@ def parse_arguments():
         help="name of the ligand residue in pdb file",
         default="UNK",
         type=str,
-    )
-    parser.add_argument(
-        "--max_n_pairs",
-        help="maximum number of pairs to return for the neighbour list",
-        type=int,
-        default=-1,
     )
     parser.add_argument("--meta", help="Switch on metadynamics", action="store_true")
     parser.add_argument(

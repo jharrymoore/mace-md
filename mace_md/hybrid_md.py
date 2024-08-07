@@ -84,7 +84,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 
 
-class ReplicaMixingScheme(Enum):
+class ReplicaMixingScheme:
     SWAP_ALL = "swap-all"
     SWAP_NONE = None
     SWAP_NEIGHBORS="swap-neighbors"
@@ -205,7 +205,7 @@ class MACESystemBase(ABC):
         return atoms, molecule
 
     @abstractmethod
-    def create_system(self):
+    def create_system(self, **args):
         pass
 
     def propagate(
@@ -414,9 +414,9 @@ class MACESystemBase(ABC):
         restart: bool,
         steps: int,
         replica_mixing_scheme: ReplicaMixingScheme,
+        equilibration_protocol: str,
         steps_per_mc_move: int = 1000,
         steps_per_equilibration_interval: int = 1000,
-        equilibration_protocol: str = "minimise",
         lambda_schedule: Optional[List[float]] = None,
         checkpoint_interval: int = 100,
     ) -> None:
@@ -427,8 +427,8 @@ class MACESystemBase(ABC):
 
         sampler = RepexConstructor(
             mixed_system=self.system,
-            initial_positions=self.modeller.getPositions(),
-            intervals_per_lambda_window=2 * replicas,
+            initial_positions=self.modeller.positions,
+            intervals_per_lambda_window=replicas,
             steps_per_equilibration_interval=steps_per_equilibration_interval,
             equilibration_protocol=equilibration_protocol,
             temperature=self.temperature * kelvin,
@@ -508,146 +508,6 @@ class MACESystemBase(ABC):
 
         return meta
 
-    # def decouple_long_range(self, system: System, solute_indices: List) -> System:
-    #     """Create an alchemically modified system with the lambda parameters to decouple the steric and electrostatic components of the forces according to their respective lambda parameters
-    #
-    #     :param System system: the openMM system to test
-    #     :param List solute_indices: the list of indices to treat as the alchemical region (i.e. the ligand to be decoupled from solvent)
-    #     :return System: Alchemically modified version of the system with additional lambda parameters for the
-    #     """
-    #     factory = alchemy.AbsoluteAlchemicalFactory(alchemical_pme_treatment="exact")
-    #
-    #     alchemical_region = alchemy.AlchemicalRegion(
-    #         alchemical_atoms=solute_indices,
-    #         annihilate_electrostatics=True,
-    #         annihilate_sterics=True,
-    #     )
-    #     alchemical_system = factory.create_alchemical_system(system, alchemical_region)
-    #
-    #     return alchemical_system
-
-    def run_neq_switching(
-        self,
-        steps: int,
-        interval: int,
-        restart: bool,
-        direction: str = "forward",
-    ) -> List[float]:
-        """Compute the protocol work performed by switching from the MM description to the MM/ML through lambda_interpolate
-
-        Ideally this will take a series of snapshots, probably as a pdb file, and run the switching
-
-        :param int steps: number of steps in non-equilibrium switching simulation
-        :param int interval: reporterInterval
-        :return float: protocol work from the integrator
-        """
-
-        if direction not in ["forward", "reverse"]:
-            raise ValueError("direction must be either forward or reverse")
-
-        alchemical_functions = (
-            {"lambda_interpolate": "lambda"}
-            if direction == "forward"
-            else {"lambda_interpolate": "1 - lambda"}
-        )
-
-        # steps = int(switching_time / self.timestep.value_in_unit(picosecond))
-        logger.info("Running NEQ switching for {} steps".format(steps))
-        # input file contains a trajectory of snapshots for which we need the work value associated with the switching
-        # positions = self.neq_simulations_positions[positions_idx]
-        # output_file = os.path.join(self.output_dir, f"neq_{direction}_{positions_idx}.pdb")
-        # restart=False
-
-        # # prepare a set of positions to run the switching simulation for
-        # work_vals = []
-        # for pos in positions:
-
-        integrator = AlchemicalNonequilibriumLangevinIntegrator(
-            alchemical_functions=alchemical_functions,
-            nsteps_neq=steps,
-            temperature=self.temperature,
-            collision_rate=self.friction_coeff,
-            timestep=self.timestep,
-            measure_shadow_work=False,
-        )
-
-        simulation = Simulation(
-            self.modeller.topology,
-            self.system,
-            integrator,
-        )
-        simulation.context.setPositions(self.modeller.getPositions())
-
-        # set velocities to temperature
-        simulation.context.setVelocitiesToTemperature(self.temperature)
-
-        # simulation.minimizeEnergy()
-
-        reporter = StateDataReporter(
-            file=sys.stdout,
-            reportInterval=interval,
-            step=True,
-            time=True,
-            totalEnergy=True,
-            potentialEnergy=True,
-            density=True,
-            volume=True,
-            temperature=True,
-            speed=True,
-            progress=True,
-            totalSteps=steps,
-            remainingTime=True,
-        )
-        simulation.reporters.append(reporter)
-        # keep periodic box off to make quick visualisation easier
-        simulation.reporters.append(
-            PDBReporter(
-                file=os.path.join(self.output_dir,"output.pdb"),
-                reportInterval=interval,
-                enforcePeriodicBox=False if self.unwrap else True,
-            )
-        )
-        # we need this to hold the box vectors for NPT simulations
-        netcdf_reporter = NetCDFReporter(
-            file=os.path.join(self.output_dir,"output.nc"),
-            reportInterval=interval,
-        )
-        simulation.reporters.append(netcdf_reporter)
-        # dcd_reporter = DCDReporter(
-        #     file=os.path.join(self.output_dir, "output.dcd"),
-        #     reportInterval=interval,
-        #     append=restart,
-        #     enforcePeriodicBox=False if self.unwrap else True,
-        # )
-        # simulation.reporters.append(dcd_reporter)
-        # hdf5_reporter = HDF5Reporter(
-        #     file=os.path.join(self.output_dir, output_file[:-4] + ".h5"),
-        #     reportInterval=interval,
-        #     velocities=True,
-        # )
-        # simulation.reporters.append(hdf5_reporter)
-        # Add an extra hash to any existing checkpoint files
-        checkpoint_files = [f for f in os.listdir(self.output_dir) if f.endswith("#")]
-        for file in checkpoint_files:
-            os.rename(
-                os.path.join(self.output_dir, file),
-                os.path.join(self.output_dir, f"{file}#"),
-            )
-
-        checkpoint_filepath = os.path.join(self.output_dir,"output.chk")
-        # backup the existing checkpoint file
-        if os.path.isfile(checkpoint_filepath):
-            os.rename(checkpoint_filepath, checkpoint_filepath + "#")
-        checkpoint_reporter = CheckpointReporter(
-            file=checkpoint_filepath, reportInterval=interval
-        )
-        simulation.reporters.append(checkpoint_reporter)
-
-        # We need to take the final state
-        simulation.step(steps)
-        protocol_work = integrator.get_total_work(dimensionless=True)
-        print(f"Protocol work: {protocol_work}")
-        return protocol_work
 
 
 class MixedSystem(MACESystemBase):
@@ -979,7 +839,7 @@ class PureSystem(MACESystemBase):
         self.padding = padding
         self.optimized_model = optimized_model
 
-        self.create_system(ml_mol=file, model_path=model_path)
+        self.create_system(file=file, model_path=model_path)
 
     def create_system(
         self,
