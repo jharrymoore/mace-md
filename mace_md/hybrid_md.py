@@ -993,30 +993,9 @@ class PureSystem(MACESystemBase):
         :return Tuple[System, Modeller]: return mixed system and the modeller for topology + position access by downstream methods
         """
         # initialize the ase atoms for MACE
-        atoms = read(file)
-        if self.minimiser == "ase":
-            # ensure the model was saved on the GPU
-            tmp_model = torch.load(model_path, map_location="cpu")
-            _, tmp_path = mkstemp(suffix=".pt")
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            tmp_model = tmp_model.to(device)
-            torch.save(tmp_model, tmp_path)
-            calc = MACECalculator(
-                model_paths=tmp_path,
-                device="cuda",
-                default_dtype=self.dtype.__str__().split(".")[1],
-            )
-            atoms.set_calculator(calc)
-            # minimise the system with ase
-            logger.info("Minimising with ASE...")
-            opt = LBFGS(atoms)
-            opt.run(fmax=0.2)
-            os.remove(tmp_path)
-
-        # write out minimised system
-        write(os.path.join(self.output_dir, "minimised.xyz"), atoms)
 
         if file.endswith(".xyz"):
+            atoms = read(file)
             pos = atoms.get_positions() / 10
             box_vectors = atoms.get_cell() / 10
             # canonicalise
