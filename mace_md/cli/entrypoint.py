@@ -14,6 +14,7 @@ numba_logger.setLevel(logging.WARNING)
 
 torch._C._jit_set_nvfuser_enabled(False)
 
+
 class ConsoleColours:
     HEADER = "\033[95m"
     BLUE = "\033[94m"
@@ -132,7 +133,7 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             set_temperature=args.set_temperature,
             resname=args.resname,
             nnpify_type=args.ml_selection,
-            optimized_model=args.optimized_model
+            optimized_model=args.optimized_model,
         )
 
     elif args.system_type == "hybrid":

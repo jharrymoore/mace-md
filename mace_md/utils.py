@@ -92,7 +92,11 @@ def parse_arguments():
             to a separate array on the atoms object, writes back out",
     )
     parser.add_argument("--replicas", type=int, default=1)
-    parser.add_argument("--replica_mixing_scheme", type=ReplicaMixingScheme, default=ReplicaMixingScheme.SWAP_ALL)
+    parser.add_argument(
+        "--replica_mixing_scheme",
+        type=ReplicaMixingScheme,
+        default=ReplicaMixingScheme.SWAP_ALL,
+    )
     parser.add_argument("--lambda_schedule", type=str, default=None)
     parser.add_argument("--optimized_model", action="store_true")
     parser.add_argument(

@@ -125,7 +125,6 @@ class NNPProtocol:
     default_functions = {"lambda_interpolate": lambda x: x}
 
     def __init__(self, temp_scale=None, **unused_kwargs):
-
         """allow to encode a temp scaling"""
         if temp_scale is not None:  # if the temp scale is not none, it must be a float
             assert type(temp_scale) == float, f"temp scale is not a float"
@@ -169,7 +168,6 @@ class NNPAlchemicalState(AlchemicalState):
         for parameter_name in lambda_protocol.functions:
             lambda_value = lambda_protocol.functions[parameter_name](global_lambda)
             setattr(self, parameter_name, lambda_value)
-
 
 
 class NNPCompatibilityMixin(object):
@@ -325,4 +323,3 @@ class NNPCompatibilityMixin(object):
             sampler_states=sampler_state_list,
             storage=reporter,
         )
-

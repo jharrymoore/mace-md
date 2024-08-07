@@ -81,18 +81,13 @@ from tempfile import mkstemp
 import os
 import logging
 from abc import ABC, abstractmethod
-from enum import Enum
+from enum import Enum, StrEnum
 
 
-class ReplicaMixingScheme(Enum):
+class ReplicaMixingScheme:
     SWAP_ALL = "swap-all"
     SWAP_NONE = None
-    SWAP_NEIGHBORS="swap-neighbors"
-
-
-
-
-
+    SWAP_NEIGHBORS = "swap-neighbors"
 
 
 def get_xyz_from_mol(mol):
@@ -105,9 +100,6 @@ def get_xyz_from_mol(mol):
         xyz[i, 2] = position.z
     return xyz
 
-
-# MLPotential.registerImplFactory("mace", MACEPotentialImplFactory())
-# MLPotential.registerImplFactory("ani2x", ANIPotentialImplFactory())
 
 logger = logging.getLogger("mace_md")
 
@@ -390,7 +382,11 @@ class MACESystemBase(ABC):
             DCDReporter(
                 file=os.path.join(self.output_dir, "output.dcd"),
                 reportInterval=interval,
-                append=restart if os.path.isfile(os.path.join(self.output_dir, "output.dcd")) else False,
+                append=(
+                    restart
+                    if os.path.isfile(os.path.join(self.output_dir, "output.dcd"))
+                    else False
+                ),
                 enforcePeriodicBox=False if self.unwrap else True,
             )
         )
@@ -478,7 +474,7 @@ class MACESystemBase(ABC):
                 "number_of_iterations": steps,
                 "online_analysis_interval": checkpoint_interval,
                 "online_analysis_minimum_iterations": 10,
-                "replica_mixing_scheme": replica_mixing_scheme.value,
+                "replica_mixing_scheme": replica_mixing_scheme,
             },
             storage_kwargs={
                 "storage": os.path.join(self.output_dir, "repex.nc"),
@@ -995,7 +991,7 @@ class PureSystem(MACESystemBase):
         set_temperature: bool = False,
         resname: Optional[str] = None,
         nnpify_type: Optional[str] = None,
-        optimized_model: bool = False
+        optimized_model: bool = False,
     ) -> None:
         super().__init__(
             # if file is None, we don't need  to create a topology, so we can pass the ml_mol
@@ -1159,9 +1155,9 @@ class PureSystem(MACESystemBase):
             logger.info(f"Creating alchemical system with solute atoms {solute_atoms}")
             self.system = ml_potential.createAlchemicalSystem(
                 topology,
-                solute_atoms=solute_atoms, 
+                solute_atoms=solute_atoms,
                 precision="single" if self.dtype == torch.float32 else "double",
-                optimized_model=self.optimized_model
+                optimized_model=self.optimized_model,
             )
         else:
             self.system = ml_potential.createSystem(
@@ -1170,7 +1166,7 @@ class PureSystem(MACESystemBase):
                 nl=self.nl,
                 max_n_pairs=self.max_n_pairs,
                 precision="single" if self.dtype == torch.float32 else "double",
-                optimized_model=self.optimized_model
+                optimized_model=self.optimized_model,
             )
 
         if self.pressure is not None:
