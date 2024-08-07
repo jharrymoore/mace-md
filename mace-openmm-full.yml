@@ -1,12 +1,12 @@
-name: mace-openmm
+name: mace-openmm-2.1
 channels:
   - conda-forge
   - defaults
 dependencies:
   - python=3.10
-  - pytorch=2.3.*
+  - pytorch=2.1.*
   - mdtraj
-  - openmm
+  - openmm=8.0.*
   - openmm-torch
   - openmmtools
   - nnpops

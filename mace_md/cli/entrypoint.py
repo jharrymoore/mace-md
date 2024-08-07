@@ -112,7 +112,7 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
         # topology to extract the right CV atoms
         system = PureSystem(
             file=args.file,
-            ml_mol=args.ml_mol,
+            # ml_mol=args.ml_mol,
             model_path=args.model_path,
             potential=args.potential,
             output_dir=args.output_dir,
@@ -121,12 +121,13 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             dtype=dtype,
             decouple=args.decouple,
             constrain_res=args.constrain_res,
-            nl=args.nl,
             max_n_pairs=args.max_n_pairs,
             timestep=args.timestep,
             smff=args.smff,
             boxsize=args.box,
             minimiser=args.minimiser,
+            padding=args.padding,
+            box_shape=args.box_shape,
             remove_cmm=args.remove_cmm,
             unwrap=args.unwrap,
             set_temperature=args.set_temperature,
@@ -150,7 +151,6 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             shape=args.box_shape,
             temperature=args.temperature,
             dtype=dtype,
-            nl=args.nl,
             max_n_pairs=args.max_n_pairs,
             output_dir=args.output_dir,
             smff=args.smff,
@@ -176,7 +176,7 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             ), "If running regular MD with decouple, only one lambda value should be specified"
             args.lambda_schedule = args.lambda_schedule[0]
 
-        system.run_mixed_md(
+        system.propagate(
             args.steps,
             args.interval,
             args.output_file,

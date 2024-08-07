@@ -1,4 +1,6 @@
 *.egg-info
 junk
 build
+__pycache__/
 xpu_test
+__pycache__/
