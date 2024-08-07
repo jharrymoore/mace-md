@@ -2,9 +2,9 @@ name: Run Pytest with Conda
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   test:
@@ -17,9 +17,9 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: 3.8  # You can specify your desired Python version here
+          python-version: 3.10  # You can specify your desired Python version here
           auto-update-conda: true
-          environment-file: environment.yml  # Points to the environment.yml in your repo
+          environment-file: mace-openmm.yml  # Points to the environment.yml in your repo
           activate-environment: test-env  # Name of the environment you will create
 
       - name: Install dependencies
