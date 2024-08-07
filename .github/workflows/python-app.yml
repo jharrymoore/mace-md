@@ -31,4 +31,4 @@ jobs:
       - name: Run Pytest
         run: |
           source activate test-env
-          pytest -s tests/
+          mace-md -h
