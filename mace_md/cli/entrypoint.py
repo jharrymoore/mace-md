@@ -112,7 +112,7 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
         # topology to extract the right CV atoms
         system = PureSystem(
             file=args.file,
-            ml_mol=args.ml_mol,
+            # ml_mol=args.ml_mol,
             model_path=args.model_path,
             potential=args.potential,
             output_dir=args.output_dir,
@@ -127,6 +127,8 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             smff=args.smff,
             boxsize=args.box,
             minimiser=args.minimiser,
+            padding=args.padding,
+            box_shape=args.box_shape,
             remove_cmm=args.remove_cmm,
             unwrap=args.unwrap,
             set_temperature=args.set_temperature,

@@ -95,7 +95,7 @@ class ReplicaMixingScheme(Enum):
 
 
 
-def get_xyz_from_mol(mol):
+def get_xyz_from_mol(mol: Molecule) -> np.ndarray:
     xyz = np.zeros((mol.GetNumAtoms(), 3))
     conf = mol.GetConformer()
     for i in range(conf.GetNumAtoms()):
@@ -210,7 +210,7 @@ class MACESystemBase(ABC):
         _, tmpfile = mkstemp(suffix=".xyz")
         molecule._to_xyz_file(tmpfile)
         atoms = read(tmpfile)
-        # os.remove(tmpfile)
+        os.remove(tmpfile)
         return atoms, molecule
 
     @abstractmethod
@@ -424,21 +424,7 @@ class MACESystemBase(ABC):
             np.save(os.path.join(self.output_dir, "free_energy.npy"), fe)
 
         else:
-            # for _ in range(steps):
-            #     simulation.step(1)
-            #     lambda_schedule += dhdl
-            #     simulation.context.setParameter("lambda_interpolate", lambda_schedule)
-            # print(
-            #     simulation.context.getState(
-            #         getParameterDerivatives=True
-            #     ).getEnergyParameterDerivatives()
-            # )
             simulation.step(steps)
-            # for interval in range(0, steps, interval):
-            #     simulation.step(interval)
-            #     # optionally take snapshot of the system, retrieve forces and energies
-            #     state = simulation.getContext().getState(getForces=True, getPotentialEnergy=True)
-            #
 
     def run_repex(
         self,
@@ -871,11 +857,6 @@ class MixedSystem(MACESystemBase):
                         omm_box_vecs[2][2].value_in_unit(angstrom),
                     ]
                 )
-        # else:
-        # this should be a large enough box
-        # run a non-periodic simulation
-        # self.modeller.topology.setPeriodicBoxVectors([[5, 0, 0], [0, 5, 0], [0, 0, 5]])
-
         system = forcefield.createSystem(
             self.modeller.topology,
             nonbondedMethod=(
@@ -969,7 +950,7 @@ class PureSystem(MACESystemBase):
 
     def __init__(
         self,
-        ml_mol: str,
+        file:str,
         model_path: str,
         potential: str,
         output_dir: str,
@@ -979,7 +960,6 @@ class PureSystem(MACESystemBase):
         minimiser: str,
         constrain_res: Optional[List[str]] = None,
         decouple: bool = False,
-        file: Optional[str] = None,
         boxsize: Optional[int] = None,
         pressure: Optional[float] = None,
         dtype: torch.dtype = torch.float64,
@@ -987,7 +967,7 @@ class PureSystem(MACESystemBase):
         timestep: float = 1.0,
         smff: str = "1.0",
         padding: float = 0.0,
-        shape: str = "cube",
+        box_shape: str = "cube",
         ionicStrength: float = 0.0,
         water_model: str = "tip3p",
         remove_cmm: bool = False,
@@ -998,8 +978,7 @@ class PureSystem(MACESystemBase):
         optimized_model: bool = False
     ) -> None:
         super().__init__(
-            # if file is None, we don't need  to create a topology, so we can pass the ml_mol
-            file=ml_mol if file is None else file,
+            file=file,
             model_path=model_path,
             potential=potential,
             output_dir=output_dir,
@@ -1023,50 +1002,51 @@ class PureSystem(MACESystemBase):
         self.resname = resname
         self.nnpify_type = nnpify_type
         self.constrain_res = constrain_res
-        self.box_shape = shape
+        self.box_shape = box_shape
         self.water_model = water_model
         self.ionicStrength = ionicStrength
         self.padding = padding
         self.optimized_model = optimized_model
 
-        self.create_system(ml_mol=ml_mol, model_path=model_path)
+        self.create_system(ml_mol=file, model_path=model_path)
 
     def create_system(
         self,
         ml_mol: str,
         model_path: str,
     ) -> None:
-        """Creates the mixed system from a purely mm system
+        """Creates the openMM system with a TorchForce applied to all atoms in the system
 
-        :param str file: input pdb file
+        :param str file: input in pdb, xyz or smiles format
         :param str model_path: path to the mace model
         :return Tuple[System, Modeller]: return mixed system and the modeller for topology + position access by downstream methods
         """
         # initialize the ase atoms for MACE
-        atoms = read(ml_mol)
-        if self.minimiser == "ase":
-            # ensure the model was saved on the GPU
-            tmp_model = torch.load(model_path, map_location="cpu")
-            _, tmp_path = mkstemp(suffix=".pt")
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            tmp_model = tmp_model.to(device)
-            torch.save(tmp_model, tmp_path)
-            calc = MACECalculator(
-                model_paths=tmp_path,
-                device="cuda",
-                default_dtype=self.dtype.__str__().split(".")[1],
-            )
-            atoms.set_calculator(calc)
-            # minimise the system with ase
-            logger.info("Minimising with ASE...")
-            opt = LBFGS(atoms)
-            opt.run(fmax=0.2)
-            os.remove(tmp_path)
-
-        # write out minimised system
-        write(os.path.join(self.output_dir, "minimised.xyz"), atoms)
+        # if self.minimiser == "ase":
+        #     atoms = read(ml_mol)
+        #     # ensure the model was saved on the GPU
+        #     tmp_model = torch.load(model_path, map_location="cpu")
+        #     _, tmp_path = mkstemp(suffix=".pt")
+        #     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        #     tmp_model = tmp_model.to(device)
+        #     torch.save(tmp_model, tmp_path)
+        #     calc = MACECalculator(
+        #         model_paths=tmp_path,
+        #         device="cuda",
+        #         default_dtype=self.dtype.__str__().split(".")[1],
+        #     )
+        #     atoms.set_calculator(calc)
+        #     # minimise the system with ase
+        #     logger.info("Minimising with ASE...")
+        #     opt = LBFGS(atoms)
+        #     opt.run(fmax=0.2)
+        #     os.remove(tmp_path)
+        #
+        #     # write out minimised system
+        #     write(os.path.join(self.output_dir, "minimised.xyz"), atoms)
 
         if ml_mol.endswith(".xyz"):
+            atoms = read(ml_mol)
             pos = atoms.get_positions() / 10
             box_vectors = atoms.get_cell() / 10
             # canonicalise
@@ -1087,16 +1067,6 @@ class PureSystem(MACESystemBase):
             # if there is a periodic box specified add it to the Topology
             if max(atoms.get_cell().cellpar()[:3]) > 0:
                 topology.setPeriodicBoxVectors(vectors=box_vectors)
-            # if there is a periodic box on the pdb file and not the xyz, use that
-
-            # load the pdbfile
-            # pdb_top = PDBFile(self.file)
-            # # extract the boxvectors
-            # box_vectors = pdb_top.topology.getPeriodicBoxVectors()
-            # topology.setPeriodicBoxVectors(box_vectors)
-            #
-            # logger.info(f"Initialized topology with {pos.shape} positions")
-
             self.modeller = Modeller(topology, pos)
 
         elif ml_mol.endswith(".sdf"):
@@ -1137,19 +1107,40 @@ class PureSystem(MACESystemBase):
                     ionicStrength=self.ionicStrength * molar,
                     neutralize=False,
                 )
-
-            # write the prepared system to pd bfile
-            with open(os.path.join(self.output_dir, "prepared_system.pdb"), "w") as f:
-                PDBFile.writeFile(
-                    self.modeller.topology, self.modeller.getPositions(), file=f
-                )
-
-            logger.info(
-                f"Initialized topology with {self.modeller.topology.getNumAtoms()} atoms"
-            )
-
         else:
-            raise NotImplementedError
+            try:
+                molecule = Molecule.from_smiles(ml_mol)
+                molecule.generate_conformers()
+                topology = molecule.to_topology().to_openmm()
+                positions = get_xyz_from_mol(molecule.to_rdkit()) / 10
+
+                self.modeller = Modeller(
+                    molecule.to_topology().to_openmm(),
+                    positions
+                )
+                if self.padding > 0:
+                    logger.info("Solvating system created from SMILES")
+                    # require the forcefield for the modeller only
+                    forcefield = initialize_mm_forcefield(molecule)
+                    self.modeller.addSolvent(
+                        forcefield=forcefield,
+                        model="tip3p",
+                        padding=self.padding * nanometers,
+                        boxShape=self.box_shape,
+                        ionicStrength=0* molar,
+                        neutralize=False,
+                    )
+            except:
+                raise ValueError(f"Attempted to parse argument {ml_mol} as SMILES, conversion failed")
+
+        logger.info(
+            f"Initialized topology with {self.modeller.topology.getNumAtoms()} atoms"
+        )
+
+        with open(os.path.join(self.output_dir, "prepared_system.pdb"), "w") as f:
+            PDBFile.writeFile(
+                self.modeller.topology, self.modeller.getPositions(), file=f
+            )
 
         ml_potential = MLPotential(self.potential, modelPath=model_path)
         if self.decouple:
@@ -1158,14 +1149,14 @@ class PureSystem(MACESystemBase):
             )
             logger.info(f"Creating alchemical system with solute atoms {solute_atoms}")
             self.system = ml_potential.createAlchemicalSystem(
-                topology,
+                self.modeller.topology,
                 solute_atoms=solute_atoms, 
                 precision="single" if self.dtype == torch.float32 else "double",
                 optimized_model=self.optimized_model
             )
         else:
             self.system = ml_potential.createSystem(
-                topology,
+                self.modeller.topology,
                 dtype=self.dtype,
                 nl=self.nl,
                 max_n_pairs=self.max_n_pairs,

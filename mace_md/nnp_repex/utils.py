@@ -32,8 +32,8 @@ def set_smff(smff: str) -> str:
 
 def initialize_mm_forcefield(
     molecule: Optional[Molecule],
-    forcefields: List = ["amber/protein.ff14SB.xml"],
-    smff: str = "openff_unconstrained-1.0.0.offxml",
+    forcefields: List = ["amber/protein.ff14SB.xml", "amber/tip3p_standard.xml"],
+    smff: str = "openff_unconstrained-2.0.0.offxml",
 ) -> ForceField:
     forcefield = ForceField(*forcefields)
     if molecule is not None:
