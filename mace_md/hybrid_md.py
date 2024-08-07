@@ -81,6 +81,18 @@ from tempfile import mkstemp
 import os
 import logging
 from abc import ABC, abstractmethod
+from enum import Enum
+
+
+class ReplicaMixingScheme(Enum):
+    SWAP_ALL = "swap-all"
+    SWAP_NONE = None
+    SWAP_NEIGHBORS="swap-neighbors"
+
+
+
+
+
 
 
 def get_xyz_from_mol(mol):
@@ -433,6 +445,7 @@ class MACESystemBase(ABC):
         replicas: int,
         restart: bool,
         steps: int,
+        replica_mixing_scheme: ReplicaMixingScheme,
         steps_per_mc_move: int = 1000,
         steps_per_equilibration_interval: int = 1000,
         equilibration_protocol: str = "minimise",
@@ -465,7 +478,7 @@ class MACESystemBase(ABC):
                 "number_of_iterations": steps,
                 "online_analysis_interval": checkpoint_interval,
                 "online_analysis_minimum_iterations": 10,
-                "replica_mixing_scheme": "swap-all",
+                "replica_mixing_scheme": replica_mixing_scheme,
             },
             storage_kwargs={
                 "storage": os.path.join(self.output_dir, "repex.nc"),
