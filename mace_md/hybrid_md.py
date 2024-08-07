@@ -1,4 +1,6 @@
 import sys
+import MDAnalysis as mda
+import MDAnalysis.transformations as tx
 from ase.io import read, write
 import random
 import mdtraj
@@ -87,12 +89,7 @@ from enum import Enum
 class ReplicaMixingScheme:
     SWAP_ALL = "swap-all"
     SWAP_NONE = None
-    SWAP_NEIGHBORS="swap-neighbors"
-
-
-
-
-
+    SWAP_NEIGHBORS = "swap-neighbors"
 
 
 def get_xyz_from_mol(mol: Molecule) -> np.ndarray:
@@ -126,6 +123,7 @@ class MACESystemBase(ABC):
     remove_cmm: bool
     unwrap: bool
     set_temperature: bool
+    resname: str
 
     def __init__(
         self,
@@ -134,6 +132,7 @@ class MACESystemBase(ABC):
         output_dir: str,
         temperature: float,
         minimiser: str,
+        resname: str,
         pressure: Optional[float] = None,
         dtype: torch.dtype = torch.float64,
         friction_coeff: float = 1.0,
@@ -159,6 +158,7 @@ class MACESystemBase(ABC):
         self.mm_only = mm_only
         self.minimiser = minimiser
         self.unwrap = unwrap
+        self.resname = resname
         self.openmm_precision = "Double" if dtype == torch.float64 else "Mixed"
         logger.debug(f"OpenMM will use {self.openmm_precision} precision")
 
@@ -270,14 +270,14 @@ class MACESystemBase(ABC):
         if lambda_schedule is not None:
             logger.info(f"Setting global lambda_interpolate to {lambda_schedule}")
             simulation.context.setParameter("lambda_interpolate", lambda_schedule)
-        checkpoint_filepath = os.path.join(self.output_dir,"output.chk")
+        checkpoint_filepath = os.path.join(self.output_dir, "output.chk")
         if restart and os.path.isfile(checkpoint_filepath):
             with open(checkpoint_filepath, "rb") as f:
                 logger.info("Loading simulation from checkpoint file...")
                 simulation.context.loadCheckpoint(f.read())
         else:
             simulation.context.setPositions(self.modeller.getPositions())
-                # rpmd requires that the integrator be used to set positions
+            # rpmd requires that the integrator be used to set positions
             if self.minimiser == "openmm":
                 logging.info("Minimising energy...")
                 simulation.minimizeEnergy()
@@ -290,7 +290,9 @@ class MACESystemBase(ABC):
                         getPositions=True, getVelocities=True, getForces=True
                     )
                 local_rank = os.environ.get("OMPI_LOCAL_RANK")
-                print(f"Simulation running on rank {local_rank} writing minimised structure")
+                print(
+                    f"Simulation running on rank {local_rank} writing minimised structure"
+                )
                 with open(
                     os.path.join(self.output_dir, "minimised_system.pdb"), "w"
                 ) as f:
@@ -371,7 +373,11 @@ class MACESystemBase(ABC):
             DCDReporter(
                 file=os.path.join(self.output_dir, "output.dcd"),
                 reportInterval=interval,
-                append=restart if os.path.isfile(os.path.join(self.output_dir, "output.dcd")) else False,
+                append=(
+                    restart
+                    if os.path.isfile(os.path.join(self.output_dir, "output.dcd"))
+                    else False
+                ),
                 enforcePeriodicBox=False if self.unwrap else True,
             )
         )
@@ -407,6 +413,36 @@ class MACESystemBase(ABC):
         else:
             logger.info("Running dynamics for {steps} steps")
             simulation.step(steps)
+
+        # write out centered strucure
+
+    def write_centered_structure(self):
+        u = mda.Universe(
+            os.path.join(self.output_dir, "prepared_system.pdb"),
+            os.path.join(self.output_dir, "output.dcd"),
+        )
+        u.atoms.guess_bonds(vdwradii={"Cl": 1.81, "Br": 1.96})
+
+        lig = u.select_atoms(f"resname {self.resname}")
+
+        cell_dims = []
+        for ts in u.trajectory:
+            cell_dims.append(np.array(ts.dimensions))
+
+        txs = [
+            tx.unwrap(u.atoms),
+            tx.center_in_box(lig),
+            tx.wrap(u.atoms, compound="fragments"),
+        ]
+
+        u.trajectory.add_transformations(*txs)
+
+        with mda.Writer(
+            os.path.join(self.output_dir, "output_wrapped_equil.pdb"), u.atoms.n_atoms
+        ) as W:
+            # select last frame
+            ts = u.trajectory[-1]
+            W.write(u.atoms)
 
     def run_repex(
         self,
@@ -575,6 +611,7 @@ class MixedSystem(MACESystemBase):
             remove_cmm=remove_cmm,
             unwrap=unwrap,
             set_temperature=set_temperature,
+            resname=resname,
         )
 
         self.forcefields = forcefields
@@ -582,7 +619,6 @@ class MixedSystem(MACESystemBase):
         self.shape = shape
         self.ionicStrength = ionicStrength
         self.nonbondedCutoff = nonbondedCutoff
-        self.resname = resname
         self.nnpify_type = nnpify_type
         self.cv1 = cv1
         self.cv2 = cv2
@@ -787,11 +823,12 @@ class PureSystem(MACESystemBase):
 
     def __init__(
         self,
-        file:str,
+        file: str,
         model_path: str,
         output_dir: str,
         temperature: float,
         minimiser: str,
+        resname: str,
         constrain_res: Optional[List[str]] = None,
         decouple: bool = False,
         boxsize: Optional[int] = None,
@@ -807,9 +844,8 @@ class PureSystem(MACESystemBase):
         remove_cmm: bool = False,
         unwrap: bool = False,
         set_temperature: bool = False,
-        resname: Optional[str] = None,
         nnpify_type: Optional[str] = None,
-        optimized_model: bool = False
+        optimized_model: bool = False,
     ) -> None:
         super().__init__(
             file=file,
@@ -821,6 +857,7 @@ class PureSystem(MACESystemBase):
             friction_coeff=friction_coeff,
             timestep=timestep,
             smff=smff,
+            resname=resname,
             minimiser=minimiser,
             remove_cmm=remove_cmm,
             unwrap=unwrap,
@@ -830,7 +867,6 @@ class PureSystem(MACESystemBase):
 
         self.boxsize = boxsize
         self.decouple = decouple
-        self.resname = resname
         self.nnpify_type = nnpify_type
         self.constrain_res = constrain_res
         self.box_shape = box_shape
@@ -923,10 +959,7 @@ class PureSystem(MACESystemBase):
                 topology = molecule.to_topology().to_openmm()
                 positions = get_xyz_from_mol(molecule.to_rdkit()) / 10
 
-                self.modeller = Modeller(
-                    molecule.to_topology().to_openmm(),
-                    positions
-                )
+                self.modeller = Modeller(molecule.to_topology().to_openmm(), positions)
                 if self.padding > 0:
                     logger.info("Solvating system created from SMILES")
                     # require the forcefield for the modeller only
@@ -936,11 +969,13 @@ class PureSystem(MACESystemBase):
                         model="tip3p",
                         padding=self.padding * nanometers,
                         boxShape=self.box_shape,
-                        ionicStrength=0* molar,
+                        ionicStrength=0 * molar,
                         neutralize=False,
                     )
             except:
-                raise ValueError(f"Attempted to parse argument {ml_mol} as SMILES, conversion failed")
+                raise ValueError(
+                    f"Attempted to parse argument {ml_mol} as SMILES, conversion failed"
+                )
 
         logger.info(
             f"Initialized topology with {self.modeller.topology.getNumAtoms()} atoms"
@@ -959,9 +994,9 @@ class PureSystem(MACESystemBase):
             logger.info(f"Creating alchemical system with solute atoms {solute_atoms}")
             self.system = ml_potential.createAlchemicalSystem(
                 self.modeller.topology,
-                solute_atoms=solute_atoms, 
+                solute_atoms=solute_atoms,
                 precision="single" if self.dtype == torch.float32 else "double",
-                optimized_model=self.optimized_model
+                optimized_model=self.optimized_model,
             )
         else:
             self.system = ml_potential.createSystem(
@@ -969,7 +1004,7 @@ class PureSystem(MACESystemBase):
                 dtype=self.dtype,
                 max_n_pairs=-1,
                 precision="single" if self.dtype == torch.float32 else "double",
-                optimized_model=self.optimized_model
+                optimized_model=self.optimized_model,
             )
 
         if self.pressure is not None:
