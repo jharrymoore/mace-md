@@ -94,7 +94,7 @@ def parse_arguments():
     parser.add_argument("--replicas", type=int, default=1)
     parser.add_argument(
         "--replica_mixing_scheme",
-        type=ReplicaMixingScheme,
+        type=str,
         default=ReplicaMixingScheme.SWAP_ALL,
     )
     parser.add_argument("--lambda_schedule", type=str, default=None)
