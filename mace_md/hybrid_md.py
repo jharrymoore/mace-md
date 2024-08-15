@@ -411,10 +411,11 @@ class MACESystemBase(ABC):
             np.save(os.path.join(self.output_dir, "free_energy.npy"), fe)
 
         else:
-            logger.info("Running dynamics for {steps} steps")
+            logger.info(f"Running dynamics for {steps} steps")
             simulation.step(steps)
 
         # write out centered strucure
+        self.write_centered_structure()
 
     def write_centered_structure(self):
         u = mda.Universe(
@@ -543,7 +544,6 @@ class MACESystemBase(ABC):
         )
 
         return meta
-
 
 
 class MixedSystem(MACESystemBase):
