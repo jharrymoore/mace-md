@@ -50,7 +50,7 @@ def parse_arguments():
     )
     parser.add_argument("--steps", "-s", type=int, default=10000)
     parser.add_argument("--steps_per_iter", "-spi", type=int, default=1000)
-    parser.add_argument("--padding", "-p", default=1.2, type=float)
+    parser.add_argument("--padding", "-p", default=0.0, type=float)
     parser.add_argument(
         "--box_shape",
         type=str,

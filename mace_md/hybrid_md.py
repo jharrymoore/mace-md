@@ -362,13 +362,13 @@ class MACESystemBase(ABC):
             )
         )
         # keep periodic box off to make quick visualisation easier
-        simulation.reporters.append(
-            PDBReporter(
-                file=os.path.join(self.output_dir, "output.pdb"),
-                reportInterval=interval,
-                enforcePeriodicBox=False if self.unwrap else True,
-            )
-        )
+        # simulation.reporters.append(
+        #     PDBReporter(
+        #         file=os.path.join(self.output_dir, "output.pdb"),
+        #         reportInterval=interval,
+        #         enforcePeriodicBox=False if self.unwrap else True,
+        #     )
+        # )
         simulation.reporters.append(
             DCDReporter(
                 file=os.path.join(self.output_dir, "output.dcd"),
