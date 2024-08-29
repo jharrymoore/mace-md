@@ -411,10 +411,11 @@ class MACESystemBase(ABC):
             np.save(os.path.join(self.output_dir, "free_energy.npy"), fe)
 
         else:
-            logger.info("Running dynamics for {steps} steps")
+            logger.info(f"Running dynamics for {steps} steps")
             simulation.step(steps)
 
         # write out centered strucure
+        self.write_centered_structure()
 
     def write_centered_structure(self):
         u = mda.Universe(
@@ -543,7 +544,6 @@ class MACESystemBase(ABC):
         )
 
         return meta
-
 
 
 class MixedSystem(MACESystemBase):
@@ -954,7 +954,7 @@ class PureSystem(MACESystemBase):
                 )
         else:
             try:
-                molecule = Molecule.from_smiles(ml_mol)
+                molecule = Molecule.from_smiles(file)
                 molecule.generate_conformers()
                 topology = molecule.to_topology().to_openmm()
                 positions = get_xyz_from_mol(molecule.to_rdkit()) / 10
@@ -974,7 +974,7 @@ class PureSystem(MACESystemBase):
                     )
             except:
                 raise ValueError(
-                    f"Attempted to parse argument {ml_mol} as SMILES, conversion failed"
+                    f"Attempted to parse argument {file} as SMILES, conversion failed"
                 )
 
         logger.info(
