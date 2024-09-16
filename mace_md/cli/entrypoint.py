@@ -14,6 +14,7 @@ numba_logger.setLevel(logging.WARNING)
 
 torch._C._jit_set_nvfuser_enabled(False)
 
+
 class ConsoleColours:
     HEADER = "\033[95m"
     BLUE = "\033[94m"
@@ -54,14 +55,16 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
         print(line.center(width))
 
     args = parse_arguments().parse_args()
+    print(args.model_path)
     if args.lambda_schedule is not None:
         args.lambda_schedule = ast.literal_eval(args.lambda_schedule)
-        print(args.lambda_schedule)
         if args.replicas is not None:
             if args.replicas != len(args.lambda_schedule):
                 logging.warning(
                     "Number of replicas does not match the length of the lambda schedule. '--replicas' argument will be ignored"
                 )
+    if len(args.model_path) == 1:
+        args.model_path = args.model_path[0]
     x = PrettyTable()
     x.field_names = ["Argument", "Value"]
     for arg in vars(args):
@@ -112,7 +115,6 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
         # topology to extract the right CV atoms
         system = PureSystem(
             file=args.file,
-            # ml_mol=args.ml_mol,
             model_path=args.model_path,
             output_dir=args.output_dir,
             temperature=args.temperature,
@@ -131,7 +133,8 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             set_temperature=args.set_temperature,
             resname=args.resname,
             nnpify_type=args.ml_selection,
-            optimized_model=args.optimized_model
+            optimized_model=args.optimized_model,
+            interaction_lambda=args.interaction_lambda,
         )
 
     elif args.system_type == "hybrid":
@@ -144,12 +147,10 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             nnpify_type=args.ml_selection,
             ionicStrength=args.ionic_strength,
             nonbondedCutoff=args.nonbondedCutoff,
-            potential=args.potential,
             padding=args.padding,
             shape=args.box_shape,
             temperature=args.temperature,
             dtype=dtype,
-            max_n_pairs=args.max_n_pairs,
             output_dir=args.output_dir,
             smff=args.smff,
             pressure=args.pressure,

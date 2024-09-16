@@ -13,7 +13,7 @@ from ase import Atoms
 from rdkit.Chem.rdmolfiles import MolFromPDBFile, MolFromXYZFile
 from openmm.openmm import Platform, System
 from openmm import app
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union
 from openmm.app.internal.unitcell import reducePeriodicBoxVectors
 from openmm import (
     LangevinMiddleIntegrator,
@@ -564,8 +564,6 @@ class MixedSystem(MACESystemBase):
         model_path: str,
         resname: str,
         nnpify_type: str,
-        potential: str,
-        max_n_pairs: int,
         minimiser: str,
         output_dir: str,
         padding: float = 1.2,
@@ -597,7 +595,6 @@ class MixedSystem(MACESystemBase):
         super().__init__(
             file=file,
             model_path=model_path,
-            potential=potential,
             output_dir=output_dir,
             temperature=temperature,
             pressure=pressure,
@@ -605,7 +602,6 @@ class MixedSystem(MACESystemBase):
             friction_coeff=friction_coeff,
             timestep=timestep,
             smff=smff,
-            max_n_pairs=max_n_pairs,
             minimiser=minimiser,
             mm_only=mm_only,
             remove_cmm=remove_cmm,
@@ -829,8 +825,9 @@ class PureSystem(MACESystemBase):
         temperature: float,
         minimiser: str,
         resname: str,
+        decouple: bool,
+        interaction_lambda: Optional[float] = None,
         constrain_res: Optional[List[str]] = None,
-        decouple: bool = False,
         boxsize: Optional[int] = None,
         pressure: Optional[float] = None,
         dtype: torch.dtype = torch.float64,
@@ -874,6 +871,7 @@ class PureSystem(MACESystemBase):
         self.ionicStrength = ionicStrength
         self.padding = padding
         self.optimized_model = optimized_model
+        self.interaction_lambda = interaction_lambda
 
         self.create_system(file=file, model_path=model_path)
 
@@ -992,12 +990,28 @@ class PureSystem(MACESystemBase):
                 self.modeller.topology, self.resname, self.nnpify_type
             )
             logger.info(f"Creating alchemical system with solute atoms {solute_atoms}")
-            self.system = ml_potential.createAlchemicalSystem(
-                self.modeller.topology,
-                solute_atoms=solute_atoms,
-                precision="single" if self.dtype == torch.float32 else "double",
-                optimized_model=self.optimized_model,
-            )
+            if isinstance(self.model_path, str):
+                # regular MACE FEP
+                self.system = ml_potential.createAlchemicalSystem(
+                    self.modeller.topology,
+                    solute_atoms=solute_atoms,
+                    precision="single" if self.dtype == torch.float32 else "double",
+                    optimized_model=self.optimized_model,
+                )
+            elif isinstance(self.model_path, list):
+                # interpolate between multiple MACE models with a given lambda (has to be either 1 or zero)
+                logger.info(
+                    f"Interpolating between MACE hamiltonians with lambda={self.interaction_lambda}"
+                )
+                self.system = ml_potential.createInterpolatedAlchemicalSystem(
+                    self.modeller.topology,
+                    solute_atoms=solute_atoms,
+                    precision="single" if self.dtype == torch.float32 else "double",
+                    optimized_model=self.optimized_model,
+                    # TODO: hardcoded for now, this should be passed to the PureSystem constructor
+                    interaction_lambda=torch.tensor(self.interaction_lambda),
+                )
+
         else:
             self.system = ml_potential.createSystem(
                 self.modeller.topology,

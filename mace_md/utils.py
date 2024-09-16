@@ -91,8 +91,11 @@ def parse_arguments():
             to a separate array on the atoms object, writes back out",
     )
     parser.add_argument("--replicas", type=int, default=1)
-    parser.add_argument("--replica_mixing_scheme", type=str, default=ReplicaMixingScheme.SWAP_ALL)
+    parser.add_argument(
+        "--replica_mixing_scheme", type=str, default=ReplicaMixingScheme.SWAP_ALL
+    )
     parser.add_argument("--lambda_schedule", type=str, default=None)
+    parser.add_argument("--interaction_lambda", type=float, default=1.0)
     parser.add_argument("--optimized_model", action="store_true")
     parser.add_argument("--pre-equilibrate", action="store_true")
     parser.add_argument(
@@ -122,7 +125,10 @@ def parse_arguments():
         action="store_true",
     )
     parser.add_argument(
-        "--equilibration_protocol", type=str, choices=["minimise", "gentle"], default="minimise"
+        "--equilibration_protocol",
+        type=str,
+        choices=["minimise", "gentle"],
+        default="minimise",
     )
     parser.add_argument(
         "--forcefields",
@@ -151,12 +157,7 @@ def parse_arguments():
         type=str,
     )
     parser.add_argument("--meta", help="Switch on metadynamics", action="store_true")
-    parser.add_argument(
-        "--model_path",
-        "-m",
-        help="path to the mace model",
-        default="tests/test_openmm/MACE_SPICE_larger.model",
-    )
+    parser.add_argument("--model_path", help="path to the mace model", nargs="+")
     parser.add_argument(
         "--system_type",
         type=str,
