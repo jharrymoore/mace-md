@@ -930,6 +930,19 @@ class PureSystem(MACESystemBase):
             logger.info(f"Initialized topology with {positions.shape} positions")
 
             self.modeller = Modeller(topology, positions)
+
+            if self.padding > 0:
+                logger.info("Solvating system created from sdf...")
+                # require the forcefield for the modeller only
+                forcefield = initialize_mm_forcefield(molecule)
+                self.modeller.addSolvent(
+                    forcefield=forcefield,
+                    model="tip3p",
+                    padding=self.padding * nanometers,
+                    boxShape=self.box_shape,
+                    ionicStrength=0 * molar,
+                    neutralize=False,
+                )
         elif file.endswith(".pdb"):
             # create a modeller from the pdb file
             input_file = PDBFile(self.file)
