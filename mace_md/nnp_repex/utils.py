@@ -10,9 +10,6 @@ import logging
 import copy
 
 
-logger = logging.getLogger("mace_md")
-
-
 def set_smff(smff: str) -> str:
     """Parse SMFF from command line and initialize the correct open-ff forcefield
 
@@ -40,7 +37,7 @@ def initialize_mm_forcefield(
         if isinstance(molecule, Molecule):
             molecule = [molecule]
         for mol in molecule:
-            logger.info(f"Adding {mol} to forcefield")
+            logging.info(f"Adding {mol} to forcefield")
             smirnoff = SMIRNOFFTemplateGenerator(molecules=mol, forcefield=smff)
             forcefield.registerTemplateGenerator(smirnoff.generator)
     return forcefield
@@ -125,7 +122,6 @@ class NNPProtocol:
     default_functions = {"lambda_interpolate": lambda x: x}
 
     def __init__(self, temp_scale=None, **unused_kwargs):
-
         """allow to encode a temp scaling"""
         if temp_scale is not None:  # if the temp scale is not none, it must be a float
             assert type(temp_scale) == float, f"temp scale is not a float"
@@ -171,7 +167,6 @@ class NNPAlchemicalState(AlchemicalState):
             setattr(self, parameter_name, lambda_value)
 
 
-
 class NNPCompatibilityMixin(object):
     """
     Mixin for subclasses of `MultistateSampler` that supports `openmm-ml` exchanges of `lambda_interpolate`
@@ -215,7 +210,7 @@ class NNPCompatibilityMixin(object):
 
         if lambda_schedule is None:
             lambda_schedule = np.linspace(0.0, 1.0, n_states)
-        logger.info(f"Using lambda schedule {lambda_schedule}")
+        logging.info(f"Using lambda schedule {lambda_schedule}")
 
         platform = get_fastest_platform(minimum_precision="mixed")
         context_cache = cache.ContextCache(
@@ -227,7 +222,7 @@ class NNPCompatibilityMixin(object):
                 f"equilibration protocol {equilibration_protocol} not recognised"
             )
 
-        logger.info(f"Using {equilibration_protocol} equilibration protocol")
+        logging.info(f"Using {equilibration_protocol} equilibration protocol")
         lambda_zero_alchemical_state = NNPAlchemicalState.from_system(mixed_system)
         thermostate = ThermodynamicState(mixed_system, temperature=temperature)
         compound_thermostate = CompoundThermodynamicState(
@@ -275,12 +270,12 @@ class NNPCompatibilityMixin(object):
 
             eq_context.setParameter("lambda_interpolate", 0.0)
             init_sampler_state.apply_to_context(eq_context)
-            logger.info("Minimising initial state")
+            logging.info("Minimising initial state")
             openmm.LocalEnergyMinimizer.minimize(eq_context)  # don't forget to minimize
             # update from context for good measure
             init_sampler_state.update_from_context(eq_context)
 
-            logger.info(f"making lambda states...")
+            logging.info(f"making lambda states...")
             lambda_subinterval_schedule = np.linspace(
                 0.0, 1.0, setup_equilibration_intervals
             )
@@ -290,7 +285,7 @@ class NNPCompatibilityMixin(object):
             ).astype(int)
 
             for idx, lambda_subinterval in enumerate(lambda_subinterval_schedule):
-                logger.info(f"running lambda subinterval {lambda_subinterval}.")
+                logging.info(f"running lambda subinterval {lambda_subinterval}.")
                 # copy thermostate
                 compound_thermostate_copy = deepcopy(compound_thermostate)
                 # update thermostate
@@ -325,4 +320,3 @@ class NNPCompatibilityMixin(object):
             sampler_states=sampler_state_list,
             storage=reporter,
         )
-
