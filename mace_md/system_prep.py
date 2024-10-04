@@ -1,4 +1,5 @@
 from typing import Literal, Optional
+import errno
 
 from random import randint
 import subprocess
@@ -141,7 +142,7 @@ def solvate_system(
 def modeller_from_packmol(
     components: list[tuple[str, int]],
     box_target_density: openmm.unit.Quantity = 0.95 * _G_PER_ML,
-    box_scale_factor: float = 1.1,
+    box_scale_factor: float = 1.0,
     box_padding: openmm.unit.Quantity = 2.0 * openmm.unit.angstrom,
     tolerance: openmm.unit.Quantity = 2.0 * openmm.unit.angstrom,
 ) -> Modeller:
@@ -174,7 +175,7 @@ def modeller_from_packmol(
         _approximate_box_size_by_density(components, box_target_density)
         * box_scale_factor
     ) * openmm.unit.angstrom
-    logging.info(f"Approximated box size: {box_size}")
+    logging.info(f"Approximated box size: {box_size} for density {box_target_density}")
     molecules = {}
 
     for smiles, _ in components:
@@ -219,12 +220,69 @@ def modeller_from_packmol(
     topology = openff.toolkit.Topology.from_molecules(
         [molecules[smiles] for smiles, count in components for _ in range(count)]
     )
-    topology.box_vectors = np.eye(3) * (box_size + box_padding * unit.angstrom)
+    topology.box_vectors = np.eye(3) * (box_size + box_padding)
     topology = topology.to_openmm()
 
     modeller = Modeller(topology, coordinates)
 
     return modeller
+
+
+def compute_num_molecules(w_A, MW_A, w_B, MW_B, density, box_volume):
+    """
+    Compute molecule numbers for a given box size and density
+    """
+    N_Avogadro = 6.02214076e23  # molecules/mol
+
+    M_total = density * box_volume  # grams
+
+    M_A = w_A * M_total  # grams
+    M_B = w_B * M_total  # grams
+
+    n_A = M_A / MW_A  # moles
+    n_B = M_B / MW_B  # moles
+
+    N_A = n_A * N_Avogadro
+    N_B = n_B * N_Avogadro
+
+    return N_A, N_B
+
+
+def _approximate_num_molecules_by_density(
+    components: list[str],
+    padding: openmm.unit.Quantity,
+    target_density: openmm.unit.Quantity,
+) -> openmm.unit.Quantity:
+    """Generate an approximate box size based on the number and molecular weight of
+    the molecules present, and a target density for the final system.
+
+    Args:
+        components: The list of components.
+        target_density: Target mass density for final system with units compatible
+            with g / mL.
+
+    Returns:
+        The box size.
+    """
+    target_volume = (2.0 * padding) ** 3 * unit.nanometers**3
+
+    molecules = {
+        smiles: openff.toolkit.Molecule.from_smiles(smiles) for smiles in components
+    }
+
+    # TODO - this will only work for single components at the moment
+    for smiles in components:
+        molecule_mass = functools.reduce(
+            (lambda x, y: x + y),
+            [
+                atom.mass.to_openmm().value_in_unit(_G_PER_MOLE)
+                for atom in molecules[smiles].atoms
+            ],
+        )
+        molecule_mass /= 6.02214076e23
+        molecule_volume = molecule_mass / target_density * unit.centimeter**3
+
+    return int(target_volume / molecule_volume)
 
 
 def _approximate_box_size_by_density(

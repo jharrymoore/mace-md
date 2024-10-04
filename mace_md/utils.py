@@ -42,6 +42,7 @@ def parse_arguments():
         "--minimiser", type=str, choices=["openmm", "ase"], default=None
     )
     parser.add_argument("--pressure", type=float, default=None)
+    parser.add_argument("--target_density", type=float, default=None)
     parser.add_argument("--set_temperature", action="store_true")
     parser.add_argument(
         "--unwrap",
@@ -90,7 +91,7 @@ def parse_arguments():
             "amber14/DNA.OL15.xml",
         ],
     )
-    parser.add_argument("--solvent", type=Solvents, default=Solvents.TIP3P)
+    parser.add_argument("--solvent", type=str, default="tip3p")
     parser.add_argument(
         "--smff",
         help="which version of the openff small molecule forcefield to use",

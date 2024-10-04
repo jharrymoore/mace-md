@@ -10,3 +10,8 @@ class ReplicaMixingScheme:
 SOLVENT_SMILES = {
     "octanol": "CCCCCCCCO",
 }
+
+
+EXP_DENSITIES = {
+    "octanol": 0.831,
+}

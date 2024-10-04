@@ -57,7 +57,7 @@ from openff.toolkit import ForceField
 from openmmml import MLPotential
 
 from mace_md.cli.utils import Solvents
-from mace_md.enums import SOLVENT_SMILES, ReplicaMixingScheme
+from mace_md.enums import EXP_DENSITIES, SOLVENT_SMILES, ReplicaMixingScheme
 from mace_md.nnp_repex.repex import (
     MixedSystemConstructor,
     RepexConstructor,
@@ -78,6 +78,7 @@ from mace_md.system_prep import (
     modeller_from_sdf,
     modeller_from_smiles,
     modeller_from_xyz,
+    _approximate_num_molecules_by_density,
 )
 
 
@@ -739,6 +740,7 @@ class PureSystem(MACESystemBase):
         set_temperature: bool = False,
         nnpify_type: Optional[str] = None,
         optimized_model: bool = False,
+        target_density: Optional[float] = None,
     ) -> None:
         super().__init__(
             file=file,
@@ -763,6 +765,7 @@ class PureSystem(MACESystemBase):
         self.solvent = solvent
         self.padding = padding
         self.optimized_model = optimized_model
+        self.target_density = target_density
 
         self.create_system(file=file, model_path=model_path)
 
@@ -777,7 +780,7 @@ class PureSystem(MACESystemBase):
         :param str model_path: path to the mace model
         :return Tuple[System, Modeller]: return mixed system and the modeller for topology + position access by downstream methods
         """
-        if self.solvent in [Solvents.TIP3P, Solvents.TIP4P, None]:
+        if self.solvent in ["tip3p", "tip4pew", None]:
             if file.endswith(".xyz"):
                 self.modeller = modeller_from_xyz(file, self.padding, self.box_shape)
             elif file.endswith(".sdf"):
@@ -786,19 +789,23 @@ class PureSystem(MACESystemBase):
                 self.modeller = modeller_from_pdb(file, self.padding, self.box_shape)
             elif Chem.MolFromSmiles(file) is not None:
                 self.modeller = modeller_from_smiles(file, self.padding, self.box_shape)
-        elif self.solvent == Solvents.OCTANOL:
+        else:
             # treat solvent as a smiles string
-            solvent_smiles = SOLVENT_SMILES[self.solvent.value]
-            logging.info(f"Treating solvent {solvent_smiles} as a smiles string")
+            logging.info(f"Treating solvent {self.solvent} as a smiles string")
             # special case for solvating in non-aqueous media - use packmol
-            # TODO: hardcoded solvent number for now, we should calculate the number required to fill a given box
-            components = [(file, 1), (solvent_smiles, 100)]
-            box_target_density = 0.84  # hardcode octanol density
-            box_padding = self.padding
+            # TODO: hardcoded solvent number for now, we should calculate the number required to fill a given box size
+            # only 2 components for now
+            n_solvent_molecules = _approximate_num_molecules_by_density(
+                [self.solvent],
+                padding=self.padding,
+                target_density=self.target_density,
+            )
+            logging.info(f"Adding {n_solvent_molecules} solvent molecules")
+            components = [(file, 1), (self.solvent, n_solvent_molecules)]
             self.modeller = modeller_from_packmol(
                 components,
-                box_target_density=box_target_density,
-                box_padding=box_padding,
+                box_target_density=self.target_density,
+                # box_padding=box_padding,
             )
 
         logging.info(
