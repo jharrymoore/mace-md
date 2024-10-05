@@ -326,7 +326,8 @@ class MACESystemBase(ABC):
             simulation.step(steps)
 
         # write out centered strucure
-        self.write_centered_structure()
+        if steps > interval:
+            self.write_centered_structure()
 
     def write_centered_structure(self):
         u = mda.Universe(

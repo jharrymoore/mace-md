@@ -143,8 +143,8 @@ def modeller_from_packmol(
     components: list[tuple[str, int]],
     box_target_density: openmm.unit.Quantity = 0.95 * _G_PER_ML,
     box_scale_factor: float = 1.0,
-    box_padding: openmm.unit.Quantity = 2.0 * openmm.unit.angstrom,
-    tolerance: openmm.unit.Quantity = 2.0 * openmm.unit.angstrom,
+    box_padding: openmm.unit.Quantity = 0.5 * openmm.unit.angstrom,
+    tolerance: openmm.unit.Quantity = 1.5 * openmm.unit.angstrom,
 ) -> Modeller:
     """Generate a set of molecule coordinate by using the PACKMOL package.
 
@@ -178,7 +178,7 @@ def modeller_from_packmol(
     logging.info(f"Approximated box size: {box_size} for density {box_target_density}")
     molecules = {}
 
-    for smiles, _ in components:
+    for (smiles, _) in components:
         if smiles in molecules:
             continue
 
@@ -196,7 +196,7 @@ def modeller_from_packmol(
             box_size,
             tolerance,
         )
-
+        print(input_file_contents)
         with open("input.txt", "w") as file:
             file.write(input_file_contents)
 
@@ -220,8 +220,13 @@ def modeller_from_packmol(
     topology = openff.toolkit.Topology.from_molecules(
         [molecules[smiles] for smiles, count in components for _ in range(count)]
     )
+    # change the resname for the first residue to LIG
     topology.box_vectors = np.eye(3) * (box_size + box_padding)
     topology = topology.to_openmm()
+    for res in topology.residues():
+        print(res.name)
+        res.name = "LIG"
+        break
 
     modeller = Modeller(topology, coordinates)
 
