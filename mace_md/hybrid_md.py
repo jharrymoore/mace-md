@@ -727,7 +727,8 @@ class PureSystem(MACESystemBase):
         output_dir: str,
         temperature: float,
         minimiser: str,
-        resname: str,
+        ligA_resname: str,
+        ligB_resname: str,
         decouple: bool,
         pressure: Optional[float],
         dtype: torch.dtype,
@@ -752,7 +753,7 @@ class PureSystem(MACESystemBase):
             dtype=dtype,
             timestep=timestep,
             smff=smff,
-            resname=resname,
+            resname=ligA_resname,
             minimiser=minimiser,
             remove_cmm=remove_cmm,
             unwrap=unwrap,
@@ -767,6 +768,8 @@ class PureSystem(MACESystemBase):
         self.padding = padding
         self.optimized_model = optimized_model
         self.target_density = target_density
+        self.ligA_resname = ligA_resname
+        self.ligB_resname = ligB_resname
 
         self.create_system(file=file, model_path=model_path)
 
@@ -820,13 +823,14 @@ class PureSystem(MACESystemBase):
 
         ml_potential = MLPotential("mace", modelPath=model_path)
         if self.decouple:
-            solute_atoms = get_atoms_from_resname(
-                self.modeller.topology, self.resname, self.nnpify_type
-            )
+            # solute_atoms = get_atoms_from_resname(
+            #     self.modeller.topology, self.resname, self.nnpify_type
+            # )
             logging.info(f"Creating alchemical system with solute atoms {solute_atoms}")
-            self.system = ml_potential.createAlchemicalSystem(
+            self.system = ml_potential.createDualTopologySystem(
                 self.modeller.topology,
-                solute_atoms=solute_atoms,
+                ligA_resname=self.ligA_resname,
+                ligB_resname = self.ligB_resname,
                 precision="single" if self.dtype == torch.float32 else "double",
                 optimized_model=self.optimized_model,
             )

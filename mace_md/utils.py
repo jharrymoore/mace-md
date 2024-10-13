@@ -103,12 +103,11 @@ def parse_arguments():
         "--interval", help="steps between saved frames", type=int, default=100
     )
     parser.add_argument(
-        "--resname",
-        "-r",
-        help="name of the ligand residue in pdb file",
-        default="UNK",
+        "--ligA_resname",
+        default="LGA",
         type=str,
     )
+    parser.add_argument("--ligB_resname", default="LGB")
     parser.add_argument("--meta", help="Switch on metadynamics", action="store_true")
     parser.add_argument(
         "--model_path",
