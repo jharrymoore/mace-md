@@ -43,7 +43,7 @@ from openmm.app import (
     PME,
     HBonds,
 )
-from mdtraj.reporters import NetCDFReporter
+from mdtraj.reporters import HDF5Reporter, NetCDFReporter
 from ase.optimize import LBFGS
 from openmm.app.metadynamics import Metadynamics, BiasVariable
 from openmm.app.topology import Topology
@@ -326,6 +326,13 @@ class MACESystemBase(ABC):
         #         energyDerivatives=["lambda_interpolate"],
         #     )
         # else:
+        simulation.reporters.append(
+            HDF5Reporter(
+                file=os.path.join(self.output_dir, "output.h5"),
+                reportInterval=interval,
+                velocities=True,
+            )
+        )
 
         simulation.reporters.append(
             StateDataReporter(
