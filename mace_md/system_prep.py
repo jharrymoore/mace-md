@@ -143,8 +143,8 @@ def modeller_from_packmol(
     components: list[tuple[str, int]],
     box_target_density: openmm.unit.Quantity = 0.95 * _G_PER_ML,
     box_scale_factor: float = 1.0,
-    box_padding: openmm.unit.Quantity = 0.5 * openmm.unit.angstrom,
-    tolerance: openmm.unit.Quantity = 1.5 * openmm.unit.angstrom,
+    box_padding: openmm.unit.Quantity = 2.0 * openmm.unit.angstrom,
+    tolerance: openmm.unit.Quantity = 2.0 * openmm.unit.angstrom,
 ) -> Modeller:
     """Generate a set of molecule coordinate by using the PACKMOL package.
 
@@ -178,7 +178,7 @@ def modeller_from_packmol(
     logging.info(f"Approximated box size: {box_size} for density {box_target_density}")
     molecules = {}
 
-    for (smiles, _) in components:
+    for smiles, _ in components:
         if smiles in molecules:
             continue
 
