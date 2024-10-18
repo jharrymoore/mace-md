@@ -1,6 +1,6 @@
 from typing import Optional, List, Iterable
 from openff.toolkit.topology import Molecule
-from openmm.app import ForceField
+from openmm.app import ForceField, Topology
 from openmmforcefields.generators import SMIRNOFFTemplateGenerator
 from openmmtools.alchemy import AlchemicalState
 import openmm
@@ -8,6 +8,35 @@ from openmm.unit import kilojoules, mole, nanometer
 import numpy as np
 import logging
 import copy
+
+
+def get_atoms_from_resname(
+    topology: Topology, nnpify_id: str, nnpify_type: str
+) -> List:
+    """get the atoms (in order) of the appropriate topology resname"""
+    if nnpify_type == "chain":
+        topology = mdtraj.Topology.from_openmm(topology)
+        atoms = topology.select(f"chainid == {nnpify_id}")
+        return atoms
+    elif nnpify_type == "resname":
+        all_resnames = [
+            res.name for res in topology.residues() if res.name == nnpify_id
+        ]
+        assert (
+            len(all_resnames) == 1
+        ), f"did not find exactly 1 residue with the name {nnpify_id}; found {len(all_resnames)}"
+        for residue in list(topology.residues()):
+            if residue.name == nnpify_id:
+                break
+        atoms = []
+        for atom in list(residue.atoms()):
+            atoms.append(atom.index)
+        assert (
+            sorted(atoms) == atoms
+        ), f"atom indices ({atoms}) are not in ascending order"
+        return atoms
+    else:
+        raise ValueError("Either chain or resname must be set")
 
 
 def set_smff(smff: str) -> str:

@@ -1,6 +1,7 @@
 import logging
 
 import os
+from mace_md.nnp_repex.utils import get_atoms_from_resname
 from openmmml.mlpotential import MLPotential
 import openmm
 from openmm import unit, app
@@ -31,35 +32,6 @@ class NNPRepexSampler(NNPCompatibilityMixin, replicaexchange.ReplicaExchangeSamp
 class NNPMultiStateSampler(NNPCompatibilityMixin, multistatesampler.MultiStateSampler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-
-def get_atoms_from_resname(
-    topology: Topology, nnpify_id: str, nnpify_type: str
-) -> List:
-    """get the atoms (in order) of the appropriate topology resname"""
-    if nnpify_type == "chain":
-        topology = mdtraj.Topology.from_openmm(topology)
-        atoms = topology.select(f"chainid == {nnpify_id}")
-        return atoms
-    elif nnpify_type == "resname":
-        all_resnames = [
-            res.name for res in topology.residues() if res.name == nnpify_id
-        ]
-        assert (
-            len(all_resnames) == 1
-        ), f"did not find exactly 1 residue with the name {nnpify_id}; found {len(all_resnames)}"
-        for residue in list(topology.residues()):
-            if residue.name == nnpify_id:
-                break
-        atoms = []
-        for atom in list(residue.atoms()):
-            atoms.append(atom.index)
-        assert (
-            sorted(atoms) == atoms
-        ), f"atom indices ({atoms}) are not in ascending order"
-        return atoms
-    else:
-        raise ValueError("Either chain or resname must be set")
 
 
 def assert_no_residue_constraints(system: openmm.System, atoms: Iterable[int]):

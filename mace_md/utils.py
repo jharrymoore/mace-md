@@ -104,10 +104,10 @@ def parse_arguments():
     )
     parser.add_argument(
         "--ligA_resname",
-        default="LGA",
+        default="UNK",
         type=str,
     )
-    parser.add_argument("--ligB_resname", default="LGB")
+    parser.add_argument("--ligB_resname")
     parser.add_argument("--meta", help="Switch on metadynamics", action="store_true")
     parser.add_argument(
         "--model_path",

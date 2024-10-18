@@ -826,11 +826,11 @@ class PureSystem(MACESystemBase):
             # solute_atoms = get_atoms_from_resname(
             #     self.modeller.topology, self.resname, self.nnpify_type
             # )
-            logging.info(f"Creating alchemical system with solute atoms {solute_atoms}")
+            logging.info(f"Creating alchemical system")
             self.system = ml_potential.createDualTopologySystem(
                 self.modeller.topology,
                 ligA_resname=self.ligA_resname,
-                ligB_resname = self.ligB_resname,
+                ligB_resname=self.ligB_resname,
                 precision="single" if self.dtype == torch.float32 else "double",
                 optimized_model=self.optimized_model,
             )
