@@ -1,3 +1,4 @@
+from mace_md.cli.utils import RunType
 from mace_md.hybrid_md import PureSystem, MixedSystem
 from mace import tools
 import logging
@@ -14,6 +15,7 @@ numba_logger.setLevel(logging.WARNING)
 
 torch._C._jit_set_nvfuser_enabled(False)
 
+
 class ConsoleColours:
     HEADER = "\033[95m"
     BLUE = "\033[94m"
@@ -26,6 +28,13 @@ class ConsoleColours:
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
     BLINKING = "\33[5m"
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s-%(name)s-[%(levelname)s]-%(message)s",
+    handlers=[logging.StreamHandler(), logging.FileHandler("mace_md.log")],
+)
 
 
 def main():
@@ -78,17 +87,17 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
         dtype = torch.float64
     else:
         raise ValueError(f"Data type {args.dtype} not recognised")
-    tools.setup_logger(level=args.log_level, directory=args.output_dir, tag="mace_md")
+    # tools.setup_logger(level=args.log_level, directory=args.output_dir, tag="mace_md")
 
     # we don't need to specify the file twice if dealing with just the ligand
     if args.ml_mol is None:
         args.ml_mol = args.file
-    if args.water_model == "tip3p":
+    if args.solvent == "tip3p":
         args.forcefields.append("amber/tip3p_standard.xml")
-    elif args.water_model == "tip4pew":
+    elif args.solvent == "tip4pew":
         args.forcefields.append("amber14/tip4pew.xml")
-    else:
-        raise ValueError(f"Water model {args.water_model} not recognised")
+    # else:
+    #     raise ValueError(f"Water model {args.solvent} not recognised")
 
     if args.mm_only and args.system_type == "pure":
         raise ValueError(
@@ -119,19 +128,18 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             pressure=args.pressure,
             dtype=dtype,
             decouple=args.decouple,
-            constrain_res=args.constrain_res,
             timestep=args.timestep,
             smff=args.smff,
-            boxsize=args.box,
             minimiser=args.minimiser,
             padding=args.padding,
             box_shape=args.box_shape,
-            remove_cmm=args.remove_cmm,
             unwrap=args.unwrap,
+            solvent=args.solvent,
             set_temperature=args.set_temperature,
             resname=args.resname,
             nnpify_type=args.ml_selection,
-            optimized_model=args.optimized_model
+            optimized_model=args.optimized_model,
+            target_density=args.target_density,
         )
 
     elif args.system_type == "hybrid":
@@ -144,12 +152,10 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             nnpify_type=args.ml_selection,
             ionicStrength=args.ionic_strength,
             nonbondedCutoff=args.nonbondedCutoff,
-            potential=args.potential,
             padding=args.padding,
             shape=args.box_shape,
             temperature=args.temperature,
             dtype=dtype,
-            max_n_pairs=args.max_n_pairs,
             output_dir=args.output_dir,
             smff=args.smff,
             pressure=args.pressure,
@@ -157,15 +163,14 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             interpolate=interpolate,
             minimiser=args.minimiser,
             mm_only=args.mm_only,
-            water_model=args.water_model,
+            water_model=args.solvent,
             write_gmx=args.write_gmx,
-            remove_cmm=args.remove_cmm,
             unwrap=args.unwrap,
             set_temperature=args.set_temperature,
         )
     else:
         raise ValueError(f"System type {args.system_type} not recognised!")
-    if args.run_type == "md":
+    if args.run_type == RunType.MD:
         # if we are running regular MD, but with decouple, we can effectively run a single replica - set the system's alchemical parameter
         # set the lambda value to the specified value
         if args.lambda_schedule is not None:
@@ -178,11 +183,10 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             steps=args.steps,
             interval=args.interval,
             run_metadynamics=args.meta,
-            integrator_name=args.integrator,
             lambda_schedule=args.lambda_schedule,
             restart=args.restart,
         )
-    elif args.run_type == "repex":
+    elif args.run_type == RunType.REPEX:
         system.run_repex(
             replicas=args.replicas,
             restart=args.restart,
