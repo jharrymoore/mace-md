@@ -281,6 +281,13 @@ class MACESystemBase(ABC):
             )
         )
         simulation.reporters.append(
+            PDBReporter(
+                file=os.path.join(self.output_dir, "output.pdb"),
+                reportInterval=interval,
+                enforcePeriodicBox=False if self.unwrap else True,
+            )
+        )
+        simulation.reporters.append(
             DCDReporter(
                 file=os.path.join(self.output_dir, "output.dcd"),
                 reportInterval=interval,
@@ -729,6 +736,7 @@ class PureSystem(MACESystemBase):
         minimiser: str,
         ligA_resname: str,
         ligB_resname: str,
+        mcs_mapping: str,
         decouple: bool,
         pressure: Optional[float],
         dtype: torch.dtype,
@@ -770,6 +778,13 @@ class PureSystem(MACESystemBase):
         self.target_density = target_density
         self.ligA_resname = ligA_resname
         self.ligB_resname = ligB_resname
+        self.mcs_mapping = []
+        # parse a string of the form "0:1,1:2" into a list of 2-tuples
+        if mcs_mapping is not None:
+            for pair in mcs_mapping.split(","):
+                self.mcs_mapping.append(tuple(map(int, pair.split(":"))))
+
+        logging.debug(f"MCS mapping: {self.mcs_mapping}")
 
         self.create_system(file=file, model_path=model_path)
 
@@ -831,6 +846,7 @@ class PureSystem(MACESystemBase):
                 self.modeller.topology,
                 ligA_resname=self.ligA_resname,
                 ligB_resname=self.ligB_resname,
+                mcs_mapping=self.mcs_mapping,
                 precision="single" if self.dtype == torch.float32 else "double",
                 optimized_model=self.optimized_model,
             )

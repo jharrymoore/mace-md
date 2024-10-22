@@ -138,6 +138,7 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             set_temperature=args.set_temperature,
             ligA_resname=args.ligA_resname,
             ligB_resname=args.ligB_resname,
+            mcs_mapping=args.mcs_mapping,
             nnpify_type=args.ml_selection,
             optimized_model=args.optimized_model,
             target_density=args.target_density,

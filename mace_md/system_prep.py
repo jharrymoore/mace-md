@@ -97,6 +97,7 @@ def modeller_from_pdb(file: str, padding: float, box_shape) -> Modeller:
     topology = pdb.getTopology()
     positions = pdb.getPositions()
     modeller = Modeller(topology, positions)
+    print(modeller.topology.getPeriodicBoxVectors())
     if padding > 0:
         modeller = solvate_system(None, modeller, padding, box_shape)
 
@@ -178,7 +179,7 @@ def modeller_from_packmol(
     logging.info(f"Approximated box size: {box_size} for density {box_target_density}")
     molecules = {}
 
-    for (smiles, _) in components:
+    for smiles, _ in components:
         if smiles in molecules:
             continue
 

@@ -108,6 +108,7 @@ def parse_arguments():
         type=str,
     )
     parser.add_argument("--ligB_resname")
+    parser.add_argument("--mcs_mapping", type=str, default=None)
     parser.add_argument("--meta", help="Switch on metadynamics", action="store_true")
     parser.add_argument(
         "--model_path",
