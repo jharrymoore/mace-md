@@ -1,0 +1,37 @@
+# vim:ft=plumed
+
+ENVIRONMENTSIMILARITY ...
+ SPECIES=1-2048
+ SIGMA=0.07
+ CRYSTAL_STRUCTURE=BCC
+ LATTICE_CONSTANTS=0.423
+ LABEL=cv
+ MORE_THAN={CUBIC D_0=0.38 D_MAX=0.80}
+ MEAN
+... ENVIRONMENTSIMILARITY
+
+#######################################################################
+# ATTENTION: Change TEMP here, if using a different temperature
+#######################################################################
+opes: OPES_METAD ARG=cv.morethan PACE=500 BARRIER=100 TEMP=400 STRIDE=2
+#######################################################################
+
+# Restrict the sampling to the central region
+uwall: UPPER_WALLS ARG=cv.morethan AT=1152. KAPPA=0.1 EXP=2 STRIDE=2
+lwall: LOWER_WALLS ARG=cv.morethan AT=896. KAPPA=0.1 EXP=2 STRIDE=2
+
+# Environment similarity with a strict morethan threshold
+ENVIRONMENTSIMILARITY ...
+ SPECIES=1-2048
+ SIGMA=0.07
+ CRYSTAL_STRUCTURE=CUSTOM
+ LABEL=refcv
+ REFERENCE_1=env1h.pdb
+ REFERENCE_2=env2h.pdb
+ REFERENCE_3=env3h.pdb
+ REFERENCE_4=env4h.pdb
+ MORE_THAN={RATIONAL R_0=0.5 NN=6 MM=12}
+ MEAN
+... ENVIRONMENTSIMILARITY
+
+PRINT STRIDE=500  ARG=* FILE=COLVAR

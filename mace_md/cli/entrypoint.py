@@ -1,15 +1,13 @@
 from mace_md.cli.utils import RunType
 from mace_md.hybrid_md import PureSystem, MixedSystem
-from mace import tools
 import logging
-from mace_md.utils import parse_arguments
+from mace_md.cli.utils import parse_arguments
 import torch
 import os
 from prettytable import PrettyTable
 import time
 import ast
 
-# logging.getLogger("openmmtools.multistate").setLevel(logging.ERROR)
 numba_logger = logging.getLogger("numba")
 numba_logger.setLevel(logging.WARNING)
 
@@ -199,6 +197,30 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
         )
     else:
         raise ValueError(f"run_type {args.run_type} was not recognised")
+    #upload the output file to HF
+    if args.hf_repo_id is not None:
+        from huggingface_hub import HfApi
+        api = HfApi()
+        logging.info(f"Uploading results to Hugging Face Hub at {args.hf_repo_id}")
+        api.create_repo(
+            repo_id=args.hf_repo_id,
+            repo_type="dataset",
+            exist_ok=True,
+            private=True,
+        )
+
+        api.upload_folder(
+            folder_path=args.output_dir,
+            repo_id=args.hf_repo_id,
+            repo_type="dataset",
+        )
+        # also upload the model_path
+        api.upload_file(
+            path_or_fileobj=args.model_path,
+            path_in_repo=args.model_path.split("/")[-1],
+            repo_id=args.hf_repo_id,
+            repo_type="dataset",
+        )
 
 
 if __name__ == "__main__":
