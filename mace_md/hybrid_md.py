@@ -35,7 +35,7 @@ from openmm.app import (
     PME,
     HBonds,
 )
-from mdtraj.reporters import HDF5Reporter, NetCDFReporter
+from mdtraj.reporters import HDF5Reporter
 from ase.optimize import LBFGS
 from openmm.app.metadynamics import Metadynamics, BiasVariable
 from openmm.app.topology import Topology
@@ -274,6 +274,13 @@ class MACESystemBase(ABC):
                 velocities=True,
             )
         )
+        simulation.reporters.append(
+            PDBReporter(
+                file=os.path.join(self.output_dir, "output.pdb"),
+                reportInterval=interval,
+                enforcePeriodicBox=False if self.unwrap else True,
+            )
+        )
 
         simulation.reporters.append(
             StateDataReporter(
@@ -457,8 +464,8 @@ class MACESystemBase(ABC):
         # run well-tempered metadynamics
         mdtraj_topology = mdtraj.Topology.from_openmm(topology)
 
-        cv1_atom_indices = indices_psi(mdtraj_topology)[1]
-        cv2_atom_indices = indices_phi(mdtraj_topology)[1]
+        cv1_atom_indices = indices_psi(mdtraj_topology)[0]
+        cv2_atom_indices = indices_phi(mdtraj_topology)[0]
         logging.info(f"Selcted cv1 torsion atoms {cv1_atom_indices}")
         # logging.info(f"Selcted cv2 torsion atoms {cv2_atom_indices}")
         # takes the mixed system parametrised in the init method and performs metadynamics
@@ -477,7 +484,7 @@ class MACESystemBase(ABC):
             self.system,
             [psi, phi],
             temperature=self.temperature,
-            biasFactor=100.0,
+            biasFactor=1000.0,
             height=1.0 * kilojoule_per_mole,
             frequency=100,
             biasDir=os.path.join(self.output_dir, "metaD"),
