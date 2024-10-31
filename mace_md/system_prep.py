@@ -178,25 +178,27 @@ def modeller_from_packmol(
     logging.info(f"Approximated box size: {box_size} for density {box_target_density}")
     molecules = {}
 
-    for smiles, _ in components:
-        if smiles in molecules:
+    for comp, _ in components:
+        if comp in molecules:
             continue
 
-        molecule = openff.toolkit.Molecule.from_smiles(smiles)
+        if comp.endswith("sdf"):
+            molecule = openff.toolkit.Molecule.from_file(comp)
+        else:
+            molecule = openff.toolkit.Molecule.from_smiles(comp)
         molecule.generate_conformers(n_conformers=1)
         molecule.name = f"component-{len(molecules)}.xyz"
-        molecules[smiles] = molecule
+        molecules[comp] = molecule
 
     with openff.utilities.temporary_cd():
         for molecule in molecules.values():
             molecule.to_file(molecule.name, "xyz")
 
         input_file_contents = _generate_input_file(
-            [(molecules[smiles].name, count) for smiles, count in components],
+            [(molecules[comp].name, count) for comp, count in components],
             box_size,
             tolerance,
         )
-        print(input_file_contents)
         with open("input.txt", "w") as file:
             file.write(input_file_contents)
 
@@ -218,13 +220,12 @@ def modeller_from_packmol(
     )
 
     topology = openff.toolkit.Topology.from_molecules(
-        [molecules[smiles] for smiles, count in components for _ in range(count)]
+        [molecules[comp] for comp, count in components for _ in range(count)]
     )
     # change the resname for the first residue to LIG
     topology.box_vectors = np.eye(3) * (box_size + box_padding)
     topology = topology.to_openmm()
     for res in topology.residues():
-        print(res.name)
         res.name = "LIG"
         break
 
@@ -271,9 +272,14 @@ def _approximate_num_molecules_by_density(
     """
     target_volume = (2.0 * padding) ** 3 * unit.nanometers**3
 
-    molecules = {
-        smiles: openff.toolkit.Molecule.from_smiles(smiles) for smiles in components
-    }
+    molecules = {}
+
+    for component in components:
+        if component.endswith("sdf"):
+            molecules[component] = openff.toolkit.Molecule.from_file(component) 
+        else:
+            # assume smiles string
+            molecules[component] =openff.toolkit.Molecule.from_smiles(component) 
 
     # TODO - this will only work for single components at the moment
     for smiles in components:
@@ -305,11 +311,15 @@ def _approximate_box_size_by_density(
     Returns:
         The box size.
     """
+    molecules = {}
 
-    molecules = {
-        smiles: openff.toolkit.Molecule.from_smiles(smiles)
-        for smiles in {smiles for smiles, _ in components}
-    }
+    for component in components:
+        if component[0].endswith("sdf"):
+            molecules[component[0]] = openff.toolkit.Molecule.from_file(component[0]) 
+        else:
+            # assume smiles string
+            molecules[component[0]] =openff.toolkit.Molecule.from_smiles(component[0]) 
+
 
     volume = 0.0
 
