@@ -97,11 +97,11 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
     # else:
     #     raise ValueError(f"Water model {args.solvent} not recognised")
 
-    if args.mm_only and args.system_type == "pure":
-        raise ValueError(
-            "Cannot run a pure MACE system with only the MM forcefield\
-                 - please use a hybrid system"
-        )
+    # if args.mm_only and args.system_type == "pure":
+    #     raise ValueError(
+    #         "Cannot run a pure MACE system with only the MM forcefield\
+    #              - please use a hybrid system"
+    #     )
     if args.constrain_res is not None:
         args.constrain_res = ast.literal_eval(args.constrain_atoms)
         assert isinstance(args.constrain_res, list), "constrain_atoms must be a list"
@@ -138,6 +138,7 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             nnpify_type=args.ml_selection,
             optimized_model=args.optimized_model,
             target_density=args.target_density,
+            mm_only=args.mm_only
         )
 
     elif args.system_type == "hybrid":
@@ -162,7 +163,6 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
             minimiser=args.minimiser,
             mm_only=args.mm_only,
             water_model=args.solvent,
-            write_gmx=args.write_gmx,
             unwrap=args.unwrap,
             set_temperature=args.set_temperature,
         )

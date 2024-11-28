@@ -15,11 +15,8 @@ from openmm import app
 from typing import List, Tuple, Optional
 from openmm import (
     LangevinMiddleIntegrator,
-    # RPMDIntegrator,
     MonteCarloBarostat,
     CustomTorsionForce,
-    # NoseHooverIntegrator,
-    # VerletIntegrator,
 )
 import matplotlib.pyplot as plt
 from mdtraj.geometry.dihedral import indices_phi, indices_psi
@@ -54,6 +51,7 @@ from openmm.unit import (
 )
 from openff.toolkit.topology import Molecule
 from openff.toolkit import ForceField
+from openmm.app import ForceField as OpenMMForceField
 
 from openmmml import MLPotential
 
@@ -638,14 +636,14 @@ class MixedSystem(MACESystemBase):
         forcefield = initialize_mm_forcefield(
             molecule=molecule, forcefields=self.forcefields, smff=self.SM_FF
         )
-        if self.write_gmx:
-            from openff.interchange import Interchange
+        # if self.write_gmx:
+        #     from openff.interchange import Interchange
 
-            interchange = Interchange.from_smirnoff(
-                topology=molecule.to_topology(), force_field=ForceField(self.SM_FF)
-            )
-            interchange.to_top(os.path.join(self.output_dir, "topol.top"))
-            interchange.to_gro(os.path.join(self.output_dir, "conf.gro"))
+        #     interchange = Interchange.from_smirnoff(
+        #         topology=molecule.to_topology(), force_field=OpenMMForceField(self.SM_FF)
+        #     )
+        #     interchange.to_top(os.path.join(self.output_dir, "topol.top"))
+        #     interchange.to_gro(os.path.join(self.output_dir, "conf.gro"))
         if self.padding > 0:
             logging.info(f"Adding {self.shape} solvent box")
             if "tip4p" in self.water_model:
@@ -770,6 +768,7 @@ class PureSystem(MACESystemBase):
         timestep: float,
         padding: float,
         box_shape: str,
+        mm_only: bool,
         solvent: str = "tip3p",
         smff: str = "1.0",
         remove_cmm: bool = False,
@@ -803,6 +802,7 @@ class PureSystem(MACESystemBase):
         self.padding = padding
         self.optimized_model = optimized_model
         self.target_density = target_density
+        self.mm_only = mm_only
 
         self.create_system(file=file, model_path=model_path)
 
@@ -853,6 +853,21 @@ class PureSystem(MACESystemBase):
             PDBFile.writeFile(
                 self.modeller.topology, self.modeller.getPositions(), file=f
             )
+
+        if self.mm_only:
+            logging.info("Creating MM-only system with SMIRNOFF forcefield")
+            mol = Molecule.from_smiles(file)
+            solvent = Molecule.from_smiles(self.solvent)
+            forcefield = initialize_mm_forcefield(molecule=[mol, solvent])
+            self.system = forcefield.createSystem(
+                self.modeller.topology,
+                nonbondedMethod=(
+                    CutoffNonPeriodic if self.box_shape is None else PME
+                ),
+                nonbondedCutoff=1.2 * nanometers,
+            )
+            return
+
 
         ml_potential = MLPotential("mace", modelPath=model_path)
         if self.decouple:
