@@ -185,7 +185,7 @@ def modeller_from_packmol(
         if comp.endswith("sdf"):
             molecule = openff.toolkit.Molecule.from_file(comp)
         else:
-            molecule = openff.toolkit.Molecule.from_smiles(comp)
+            molecule = openff.toolkit.Molecule.from_smiles(comp, allow_undefined_stereo=True)
         molecule.generate_conformers(n_conformers=1)
         molecule.name = f"component-{len(molecules)}.xyz"
         molecules[comp] = molecule
@@ -295,10 +295,10 @@ def _approximate_num_molecules_by_density(
         molecule_volume = molecule_mass / target_density * unit.centimeter**3
         
         molecule_masses.append(molecule_mass)
-        molecule_volumes.append(molecule_volume)
+        molecule_volumes.append(molecule_volume.value_in_unit(unit.nanometer**3))
 
     # Calculate number of molecules for equal mole fractions
-    total_molecules = int(target_volume / (sum(molecule_volumes) / len(components)))
+    total_molecules = int(target_volume.value_in_unit(unit.nanometer**3) / (sum(molecule_volumes) / len(components)))
     molecules_per_component = total_molecules // len(components)
     
     return [molecules_per_component] * len(components)
@@ -326,7 +326,7 @@ def _approximate_box_size_by_density(
             molecules[component[0]] = openff.toolkit.Molecule.from_file(component[0]) 
         else:
             # assume smiles string
-            molecules[component[0]] =openff.toolkit.Molecule.from_smiles(component[0]) 
+            molecules[component[0]] =openff.toolkit.Molecule.from_smiles(component[0], allow_undefined_stereo=True) 
 
 
     volume = 0.0

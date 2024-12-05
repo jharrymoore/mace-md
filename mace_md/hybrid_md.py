@@ -854,14 +854,17 @@ class PureSystem(MACESystemBase):
 
         if self.mm_only:
             logging.info("Creating MM-only system with SMIRNOFF forcefield")
-            mol = Molecule.from_smiles(file)
-            solvent = Molecule.from_smiles(self.solvent)
-            forcefield = initialize_mm_forcefield(molecule=[mol, solvent])
+            mol = Molecule.from_smiles(file, allow_undefined_stereo=True)
+            mols = [mol]
+            for solvent in self.solvent:
+                solvent = Molecule.from_smiles(solvent, allow_undefined_stereo=True)
+                mols.append(solvent)
+            forcefield = initialize_mm_forcefield(molecule=mols)
             self.system = forcefield.createSystem(
-                self.modeller.topology,
-                nonbondedMethod=(
-                    CutoffNonPeriodic if self.box_shape is None else PME
-                ),
+            self.modeller.topology,
+            nonbondedMethod=(
+                CutoffNonPeriodic if self.box_shape is None else PME
+            ),
                 nonbondedCutoff=1.2 * nanometers,
             )
             return
