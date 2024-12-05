@@ -769,7 +769,7 @@ class PureSystem(MACESystemBase):
         padding: float,
         box_shape: str,
         mm_only: bool,
-        solvent: str = "tip3p",
+        solvent: List[str] = ["tip3p"],
         smff: str = "1.0",
         remove_cmm: bool = False,
         unwrap: bool = False,
@@ -817,28 +817,26 @@ class PureSystem(MACESystemBase):
         :param str model_path: path to the mace model
         :return Tuple[System, Modeller]: return mixed system and the modeller for topology + position access by downstream methods
         """
-        if self.solvent in ["tip3p", "tip4pew", None]:
-            if file.endswith(".xyz"):
-                self.modeller = modeller_from_xyz(file, self.padding, self.box_shape)
-            elif file.endswith(".sdf"):
-                self.modeller = modeller_from_sdf(file, self.padding, self.box_shape)
-            elif file.endswith(".pdb"):
-                self.modeller = modeller_from_pdb(file, self.padding, self.box_shape)
-            elif Chem.MolFromSmiles(file) is not None:
-                self.modeller = modeller_from_smiles(file, self.padding, self.box_shape)
+        if len(self.solvent) == 1:
+            if self.solvent in ["tip3p", "tip4pew", None]:
+                if file.endswith(".xyz"):
+                    self.modeller = modeller_from_xyz(file, self.padding, self.box_shape)
+                elif file.endswith(".sdf"):
+                    self.modeller = modeller_from_sdf(file, self.padding, self.box_shape)
+                elif file.endswith(".pdb"):
+                    self.modeller = modeller_from_pdb(file, self.padding, self.box_shape)
+                elif Chem.MolFromSmiles(file) is not None:
+                    self.modeller = modeller_from_smiles(file, self.padding, self.box_shape)
         else:
-            # treat solvent as a smiles string
-            logging.info(f"Treating solvent {self.solvent} as a smiles string")
-            # special case for solvating in non-aqueous media - use packmol
-            # TODO: hardcoded solvent number for now, we should calculate the number required to fill a given box size
-            # only 2 components for now
+            # treat solvent as a (possibly list of) smiles string
+            logging.info(f"Treating solvent {self.solvent} as smiles")
             n_solvent_molecules = _approximate_num_molecules_by_density(
-                [self.solvent],
+                self.solvent,
                 padding=self.padding,
                 target_density=self.target_density,
             )
             logging.info(f"Adding {n_solvent_molecules} solvent molecules")
-            components = [(file, 1), (self.solvent, n_solvent_molecules)]
+            components = [(file, 1), *[(solvent, n_molecules) for solvent, n_molecules in zip(self.solvent, n_solvent_molecules)]]
             self.modeller = modeller_from_packmol(
                 components,
                 box_target_density=self.target_density,

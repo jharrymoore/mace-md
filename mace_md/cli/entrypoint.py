@@ -90,18 +90,11 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
     # we don't need to specify the file twice if dealing with just the ligand
     if args.ml_mol is None:
         args.ml_mol = args.file
-    if args.solvent == "tip3p":
+    if "tip3p" in args.solvent:
         args.forcefields.append("amber/tip3p_standard.xml")
-    elif args.solvent == "tip4pew":
+    elif "tip4pew" in args.solvent:
         args.forcefields.append("amber14/tip4pew.xml")
-    # else:
-    #     raise ValueError(f"Water model {args.solvent} not recognised")
-
-    # if args.mm_only and args.system_type == "pure":
-    #     raise ValueError(
-    #         "Cannot run a pure MACE system with only the MM forcefield\
-    #              - please use a hybrid system"
-    #     )
+  
     if args.constrain_res is not None:
         args.constrain_res = ast.literal_eval(args.constrain_atoms)
         assert isinstance(args.constrain_res, list), "constrain_atoms must be a list"
@@ -119,7 +112,6 @@ o8o        o888o o88o     o8888o  `Y8bood8P'  o888ooooood8         o8o        o8
         # topology to extract the right CV atoms
         system = PureSystem(
             file=args.file,
-            # ml_mol=args.ml_mol,
             model_path=args.model_path,
             output_dir=args.output_dir,
             temperature=args.temperature,

@@ -100,7 +100,7 @@ def parse_arguments():
             "amber14/DNA.OL15.xml",
         ],
     )
-    parser.add_argument("--solvent", type=str, default="tip3p")
+    parser.add_argument("--solvent", type=str, default="tip3p", nargs="+")
     parser.add_argument(
         "--smff",
         help="which version of the openff small molecule forcefield to use",

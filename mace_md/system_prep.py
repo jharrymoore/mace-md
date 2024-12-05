@@ -258,42 +258,50 @@ def _approximate_num_molecules_by_density(
     components: list[str],
     padding: openmm.unit.Quantity,
     target_density: openmm.unit.Quantity,
-) -> openmm.unit.Quantity:
-    """Generate an approximate box size based on the number and molecular weight of
-    the molecules present, and a target density for the final system.
+) -> list[int]:
+    """Generate approximate numbers of molecules for each component based on the target density.
 
     Args:
         components: The list of components.
+        padding: The padding to add around the box.
         target_density: Target mass density for final system with units compatible
             with g / mL.
 
     Returns:
-        The box size.
+        List of integers representing number of molecules for each component.
     """
     target_volume = (2.0 * padding) ** 3 * unit.nanometers**3
 
     molecules = {}
+    molecule_masses = []
+    molecule_volumes = []
 
+    # First calculate mass and volume for each component
     for component in components:
         if component.endswith("sdf"):
-            molecules[component] = openff.toolkit.Molecule.from_file(component) 
+            molecules[component] = openff.toolkit.Molecule.from_file(component)
         else:
             # assume smiles string
-            molecules[component] =openff.toolkit.Molecule.from_smiles(component) 
+            molecules[component] = openff.toolkit.Molecule.from_smiles(component)
 
-    # TODO - this will only work for single components at the moment
-    for smiles in components:
         molecule_mass = functools.reduce(
             (lambda x, y: x + y),
             [
                 atom.mass.to_openmm().value_in_unit(_G_PER_MOLE)
-                for atom in molecules[smiles].atoms
+                for atom in molecules[component].atoms
             ],
         )
         molecule_mass /= 6.02214076e23
         molecule_volume = molecule_mass / target_density * unit.centimeter**3
+        
+        molecule_masses.append(molecule_mass)
+        molecule_volumes.append(molecule_volume)
 
-    return int(target_volume / molecule_volume)
+    # Calculate number of molecules for equal mole fractions
+    total_molecules = int(target_volume / (sum(molecule_volumes) / len(components)))
+    molecules_per_component = total_molecules // len(components)
+    
+    return [molecules_per_component] * len(components)
 
 
 def _approximate_box_size_by_density(
